@@ -117,6 +117,35 @@ export const useClientConfirmPhoneNumberStore = createRequestFactory<
 });
 ```
 
+**Example 3: Paginated Query (Paid Invoices)**
+
+```typescript:luce-fe/src/store/invoices/paidInvoices.ts
+import type {
+  InvoicesByFiltersQuery,
+  InvoicesByFiltersQueryVariables,
+} from "@/__generated__/graphql";
+import { InvoicesByFiltersDocument } from "@/__generated__/graphql";
+import type { InvoiceCardData } from "@/components/shared/invoices/invoice-card";
+import { mapToInvoiceCard } from "@/components/shared/invoices/invoice-card";
+import { createPaginatedFactory } from "@/lib/request-factory";
+
+export const usePaidInvoicesStore = createPaginatedFactory<
+  InvoicesByFiltersQuery,
+  InvoiceCardData,
+  InvoicesByFiltersQueryVariables
+>({
+  method: "query",
+  graphqlDocument: InvoicesByFiltersDocument,
+  fetchPolicy: "network-only",
+  getCountFromResponse: (res) => {
+    return res.invoicesByFilters.count;
+  },
+  transformFunction(data) {
+    return data.invoicesByFilters.invoices.map(mapToInvoiceCard);
+  },
+});
+```
+
 ### After: Using useQuery Directly
 
 **Example 1: Simple Query (Visit Detail)**
@@ -152,6 +181,55 @@ export function useClientConfirmPhoneNumber() {
     },
   });
   return { mutate, loading, error };
+}
+```
+
+**Example 3: Paginated Query (Paid Invoices)**
+
+```typescript:luce-fe/src/gqlhooks/invoices/usePaidInvoices.ts
+import { useQuery } from "@apollo/client";
+import {
+  InvoicesByFiltersDocument,
+  type InvoicesByFiltersQueryVariables,
+} from "@/__generated__/graphql";
+import type { InvoiceCardData } from "@/components/shared/invoices/invoice-card";
+import { mapToInvoiceCard } from "@/components/shared/invoices/invoice-card";
+import { useMemo } from "react";
+
+export function usePaidInvoices(filters: InvoicesByFiltersQueryVariables["filters"]) {
+  const { data, loading, error, fetchMore } = useQuery(InvoicesByFiltersDocument, {
+    variables: {
+      filters: {
+        ...filters,
+        offset: 0,
+        limit: 20,
+      },
+    },
+    fetchPolicy: "network-only",
+  });
+
+  const invoices = useMemo(() => {
+    return data?.invoicesByFilters.invoices.map(mapToInvoiceCard) ?? [];
+  }, [data]);
+
+  const total = data?.invoicesByFilters.count ?? 0;
+  const hasMore = invoices.length < total;
+
+  const loadMore = () => {
+    if (!hasMore || loading) return;
+
+    fetchMore({
+      variables: {
+        filters: {
+          ...filters,
+          offset: invoices.length,
+          limit: 20,
+        },
+      },
+    });
+  };
+
+  return { invoices, total, loading, error, loadMore, hasMore };
 }
 ```
 
@@ -271,6 +349,42 @@ function ConfirmPhoneButton({ input }: { input: { phoneNumber: string; code: str
 }
 ```
 
+**Example 3: Using Paginated Query in Component**
+
+```typescript
+import { View, Button, Skeleton } from "@/components/ui";
+import { InvoiceCard } from "@/components/shared/invoices/invoice-card";
+import { usePaidInvoices } from "@/gqlhooks/invoices/usePaidInvoices";
+import { InvoiceFilterStatusEnum } from "@/__generated__/graphql";
+
+function PaidInvoicesList() {
+  const { invoices, loading, error, loadMore, hasMore } = usePaidInvoices({
+    paymentStatus: InvoiceFilterStatusEnum.Paid,
+  });
+
+  if (loading && invoices.length === 0) {
+    return <Skeleton className="h-[200px] w-full" />;
+  }
+
+  if (error) {
+    return <View>Error: {error.message}</View>;
+  }
+
+  return (
+    <View className="flex flex-col gap-4">
+      {invoices.map((invoice) => (
+        <InvoiceCard key={invoice.id} invoice={invoice} />
+      ))}
+      {hasMore && (
+        <Button variant="tertiary" onClick={loadMore} loading={loading}>
+          Load More
+        </Button>
+      )}
+    </View>
+  );
+}
+```
+
 ## Migration Summary
 
 **Code Reduction**:
@@ -284,6 +398,7 @@ function ConfirmPhoneButton({ input }: { input: { phoneNumber: string; code: str
 
 - **Simple Query (Visit)**: 22 lines → 8 lines (64% reduction)
 - **Intermediate Query (Confirm Phone)**: 30 lines → 12 lines (60% reduction)
+- **Paginated Query (Paid Invoices)**: 25 lines → 35 lines (but eliminates 397-line factory + better maintainability)
 
 **Files Affected**:
 
@@ -318,7 +433,8 @@ function ConfirmPhoneButton({ input }: { input: { phoneNumber: string; code: str
 
 **Considerations**:
 
-- Paginated queries may still benefit from `createPaginatedFactory` (can be addressed separately)
-- Error handling is now done via Apollo Client error link (already configured)
-- Transform functions can be moved to hooks or components
-- `onFetchSuccess` callbacks can use `onCompleted` in mutations or `useEffect` in queries
+- **Pagination**: Uses Apollo Client's `fetchMore` with offset-based pagination. For auto-merge, configure type policies in Apollo Client cache (see `createFilteredEntityTypePolicy` in `lib/graphql/cache.ts`)
+- **Error handling**: Done via Apollo Client error link (already configured)
+- **Transform functions**: Moved to hooks using `useMemo` for performance
+- **`onFetchSuccess` callbacks**: Use `onCompleted` in mutations or `useEffect` in queries
+- **Pagination state**: Managed directly in the hook (offset, hasMore) - simpler than Zustand store pagination state
