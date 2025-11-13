@@ -3,27 +3,21 @@
 ## Table of Contents
 
 - [Summary](#summary)
-- [Migration Status Board](#migration-status-board) ⚠️ **MANDATORY: Keep Updated**
 - [Implementation Strategy](#implementation-strategy)
-  - [Phase 1: Infrastructure Setup](#phase-1-infrastructure-setup) ⚠️ **MANDATORY**
-  - [Phase 2: Route Integration](#phase-2-route-integration) ⚠️ **MANDATORY**
-  - [Phase 3: Incremental Migration Strategy](#phase-3-incremental-migration-strategy) ⚠️ **MANDATORY**
-  - [Phase 4: Shared Code Strategy](#phase-4-shared-code-strategy) ⚠️ **MANDATORY**
-  - [Phase 5: Testing Strategy](#phase-5-testing-strategy) ⚠️ **MANDATORY**
-  - [Phase 6: Migration Checklist](#phase-6-migration-checklist) ⚠️ **MANDATORY**
+  - [Phase 1: Infrastructure Setup](#phase-1-infrastructure-setup)
+  - [Phase 2: Route Integration](#phase-2-route-integration)
+  - [Phase 3: Incremental Migration Strategy](#phase-3-incremental-migration-strategy)
+  - [Phase 4: Shared Code Strategy](#phase-4-shared-code-strategy)
+  - [Phase 5: Testing Strategy](#phase-5-testing-strategy)
+  - [Phase 6: Migration Checklist](#phase-6-migration-checklist)
 - [Example: Complete Migration Flow](#example-complete-migration-flow)
-- [Version Governance](#version-governance) ⚠️ **MANDATORY**
-- [Rollback Plan](#rollback-plan) ⚠️ **MANDATORY**
-- [Final Migration Steps](#final-migration-steps) ⚠️ **MANDATORY**
+- [Version Governance](#version-governance)
+- [Rollback Plan](#rollback-plan)
+- [Final Migration Steps](#final-migration-steps)
 - [Benefits](#benefits)
 - [Migration Priority](#migration-priority)
 - [Notes](#notes)
-- [Future Considerations](#future-considerations) ⚪ **OPTIONAL**
-
-**Legend:**
-
-- ⚠️ **MANDATORY** - Required sections that must be followed
-- ⚪ **OPTIONAL** - Nice-to-have sections for future improvements
+- [Future Considerations](#future-considerations)
 
 ## Summary
 
@@ -33,7 +27,7 @@ This document outlines the strategy for executing a BIG refactoring of the luce-
 
 - **Parallel Development**: Create `v2/` folders alongside existing code
 - **Incremental Migration**: Move features one at a time from v1 to v2
-- **Feature Flags**: Use user-based feature flags to enable v2 routes for engineers
+- **Route-Level Switching**: Use route-level configuration to toggle between v1 and v2 routes
 - **Zero Downtime**: v1 remains fully functional during migration
 - **Gradual Rollout**: Test v2 in isolation, then gradually redirect users to v2 routes
 - **Final State**: Keep both v1 and v2 separate forever - redirect routes to v2, move v1 code to `src/v1/` folder
@@ -53,8 +47,7 @@ This document outlines the strategy for executing a BIG refactoring of the luce-
 - `src/v2/config/` - V2 config
 - `src/v2/constants/` - V2 constants
 - `src/v2/lib/` - V2 utilities
-- `src/config/feature-flags.ts` - Feature flag configuration
-- `src/lib/feature-flags/index.ts` - Feature flag utilities
+- `src/config/routes.ts` - Route version configuration
 
 **Future Files (Final State):**
 
@@ -64,189 +57,40 @@ This document outlines the strategy for executing a BIG refactoring of the luce-
 
 - `src/app/_layout.tsx` - Add v2 route handling
 - `src/app-web/router.tsx` - Add v2 route handling
-- `src/components/shared/auth-provider/index.tsx` - Add feature flag check
 - `src/constants/routes.ts` - Add v2 route constants
-
-## Migration Status Board ⚠️ **MANDATORY: Keep Updated**
-
-> **Note**: For detailed migration tracking, see [MIGRATION-STATUS.md](./MIGRATION-STATUS.md)
-
-This board tracks the migration status of each module from v1 to v2. Update this section as modules are migrated.
-
-| Module                     | Status         | Route Flag        | Engineers Testing | Notes                         |
-| -------------------------- | -------------- | ----------------- | ----------------- | ----------------------------- |
-| **Infrastructure**         |                |                   |                   |                               |
-| Feature Flags              | ✅ Complete    | N/A               | All               | Route-level flags implemented |
-| Route Integration (Native) | 🔄 In Progress | N/A               | Gio, Fathul       | Basic structure in place      |
-| Route Integration (Web)    | 🔄 In Progress | N/A               | Gio, Fathul       | Basic structure in place      |
-| **Core Features**          |                |                   |                   |                               |
-| Authentication             | ⏳ Not Started | `login`, `signup` | -                 | -                             |
-| Homepage                   | ⏳ Not Started | `home`            | -                 | -                             |
-| Profile                    | ⏳ Not Started | `profile`         | -                 | -                             |
-| Visits                     | ⏳ Not Started | `visits`          | -                 | -                             |
-| Booking                    | ⏳ Not Started | `booking`         | -                 | -                             |
-| Rewards                    | ⏳ Not Started | `rewards`         | -                 | -                             |
-| Notifications              | ⏳ Not Started | `notifications`   | -                 | -                             |
-| **Shared Modules**         |                |                   |                   |                               |
-| GraphQL Client             | ✅ Complete    | N/A               | All               | Shared, no migration needed   |
-| Monitoring                 | ✅ Complete    | N/A               | All               | Shared, no migration needed   |
-| Assets                     | ✅ Complete    | N/A               | All               | Shared, no migration needed   |
-
-**Status Legend:**
-
-- ✅ **Complete** - Fully migrated, tested, and in production
-- 🔄 **In Progress** - Currently being migrated
-- ⏳ **Not Started** - Not yet migrated
-- 🐛 **Blocked** - Migration blocked by dependencies or issues
-- 🔍 **Review** - Awaiting code review
-
-**Last Updated**: [Update this date when modifying the board]
 
 ## Implementation Strategy
 
-### Phase 1: Infrastructure Setup ⚠️ **MANDATORY**
+### Phase 1: Infrastructure Setup
 
-#### 1.1 Feature Flag System
+#### 1.1 Route Version Configuration
 
-Create a feature flag system that checks user email/clientId to enable v2 routes.
+Create a simple route version configuration to toggle between v1 and v2 routes.
 
-**File: `src/config/feature-flags.ts`**
+**File: `src/config/routes.ts`**
 
 ```typescript
-export const FEATURE_FLAGS = {
-  // Global v2 routes flag (for app-wide toggle)
-  V2_ROUTES: {
-    enabled: true,
-    // Engineers can access v2 by logging in with these emails
-    allowedEmails: ["engineer1@example.com", "engineer2@example.com", "dev@example.com"],
-    // Or by clientId
-    allowedClientIds: ["test-client-id-1", "test-client-id-2"],
-  },
-  // Route-level flags (for granular control)
-  ROUTES: {
-    home: {
-      useV2: false, // Toggle individual routes
-      allowedEmails: ["engineer1@example.com"],
-      allowedClientIds: [],
-    },
-    profile: {
-      useV2: true,
-      allowedEmails: ["engineer1@example.com", "engineer2@example.com"],
-      allowedClientIds: [],
-    },
-    visits: {
-      useV2: false,
-      allowedEmails: [],
-      allowedClientIds: [],
-    },
-    booking: {
-      useV2: false,
-      allowedEmails: [],
-      allowedClientIds: [],
-    },
-    // Add more routes as needed
-  },
+// Route version configuration
+// Set to true to use v2, false to use v1
+export const ROUTE_VERSIONS = {
+  home: false,
+  profile: false,
+  visits: false,
+  booking: false,
+  login: false,
+  signup: false,
+  rewards: false,
+  notifications: false,
+  // Add more routes as needed
 } as const;
-```
 
-**File: `src/lib/feature-flags/index.ts`**
-
-```typescript
-import { FEATURE_FLAGS } from "@/config/feature-flags";
-import { useAuth } from "@/components/shared/auth-provider";
-import { useAuthState } from "@/store/auth";
-import { storage } from "@/lib/storage";
-
-export type FeatureFlag = keyof typeof FEATURE_FLAGS;
-export type RouteName = keyof typeof FEATURE_FLAGS.ROUTES;
+export type RouteName = keyof typeof ROUTE_VERSIONS;
 
 /**
- * Hook to check if a feature flag is enabled for the current user
- * Use this inside React components
+ * Check if a route should use v2
  */
-export function useFeatureFlag(flag: FeatureFlag): boolean {
-  const { clientId } = useAuth();
-  const userInfo = useAuthState((state) => state.data.userInfo);
-  const flagConfig = FEATURE_FLAGS[flag];
-
-  if (!flagConfig.enabled) {
-    return false;
-  }
-
-  // Check email
-  if (flagConfig.allowedEmails?.includes(userInfo.user?.email ?? "")) {
-    return true;
-  }
-
-  // Check clientId
-  if (flagConfig.allowedClientIds?.includes(clientId)) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Hook to check if a specific route should use v2
- * Returns true if route should use v2, false for v1
- */
-export function useRouteVersion(routeName: RouteName): boolean {
-  const { clientId } = useAuth();
-  const userInfo = useAuthState((state) => state.data.userInfo);
-  const routeConfig = FEATURE_FLAGS.ROUTES[routeName];
-
-  if (!routeConfig) {
-    return false; // Default to v1 if route not configured
-  }
-
-  // Check if v2 is enabled for this route
-  if (!routeConfig.useV2) {
-    return false;
-  }
-
-  // Check if user has access (if no restrictions, all users get v2)
-  const hasEmailAccess =
-    routeConfig.allowedEmails?.length === 0 || routeConfig.allowedEmails?.includes(userInfo.user?.email ?? "");
-  const hasClientIdAccess =
-    routeConfig.allowedClientIds?.length === 0 || routeConfig.allowedClientIds?.includes(clientId);
-
-  return hasEmailAccess || hasClientIdAccess;
-}
-
-/**
- * Non-hook version for use outside React components
- * Use this in route guards, middleware, etc.
- */
-export async function isV2Enabled(): Promise<boolean> {
-  const flagConfig = FEATURE_FLAGS.V2_ROUTES;
-
-  if (!flagConfig.enabled) {
-    return false;
-  }
-
-  // Get current user info from store
-  const userInfo = useAuthState.getState().data.userInfo;
-
-  // Get clientId from storage (same key used in AuthProvider)
-  const clientId = (await storage.getItem<string>("clientId")) ?? "";
-
-  return (
-    flagConfig.allowedEmails?.includes(userInfo.user?.email ?? "") || flagConfig.allowedClientIds?.includes(clientId)
-  );
-}
-
-/**
- * Non-hook version to check route version
- * Use this in route configuration files
- */
-export function getRouteVersion(routeName: RouteName): boolean {
-  const routeConfig = FEATURE_FLAGS.ROUTES[routeName];
-  if (!routeConfig || !routeConfig.useV2) {
-    return false;
-  }
-
-  // For non-hook version, check if route is enabled (user check happens at runtime)
-  return routeConfig.useV2;
+export function useRouteV2(routeName: RouteName): boolean {
+  return ROUTE_VERSIONS[routeName] ?? false;
 }
 ```
 
@@ -255,22 +99,18 @@ export function getRouteVersion(routeName: RouteName): boolean {
 **File: `src/constants/routes.ts` (additions)**
 
 ```typescript
-import { FEATURE_FLAGS } from "@/config/feature-flags";
+import { ROUTE_VERSIONS } from "@/config/routes";
 
 // Route component names (for React Native Expo Router)
-// Route-level flags determine which version to use
-// Note: This is a static check. For user-based flags, use useRouteVersion() hook in components
+// Route version configuration determines which version to use
 export const routes = {
-  home: FEATURE_FLAGS.ROUTES.home.useV2 ? "HomeV2" : "HomeV1",
-  profile: FEATURE_FLAGS.ROUTES.profile.useV2 ? "ProfileV2" : "ProfileV1",
-  visits: FEATURE_FLAGS.ROUTES.visits.useV2 ? "VisitsV2" : "VisitsV1",
-  booking: FEATURE_FLAGS.ROUTES.booking.useV2 ? "BookingV2" : "BookingV1",
-  login: FEATURE_FLAGS.ROUTES.login?.useV2 ? "LoginV2" : "LoginV1",
+  home: ROUTE_VERSIONS.home ? "HomeV2" : "HomeV1",
+  profile: ROUTE_VERSIONS.profile ? "ProfileV2" : "ProfileV1",
+  visits: ROUTE_VERSIONS.visits ? "VisitsV2" : "VisitsV1",
+  booking: ROUTE_VERSIONS.booking ? "BookingV2" : "BookingV1",
+  login: ROUTE_VERSIONS.login ? "LoginV2" : "LoginV1",
   // Add more routes as needed
 } as const;
-
-// For runtime user-based checks, use the useRouteVersion() hook in route components
-// This allows per-user feature flagging based on email/clientId
 
 // Route paths (for Web React Router)
 export const ROUTES = {
@@ -301,8 +141,8 @@ export const ROUTES_V2 = {
   // ... mirror ROUTES structure with /v2 prefix
 } as const;
 
-// Note: Route-level flags determine which version (v1 or v2) to use
-// During migration, routes can be individually toggled
+// Note: Route version configuration determines which version (v1 or v2) to use
+// During migration, routes can be individually toggled in src/config/routes.ts
 // After migration is complete, all routes will use v2 (same paths as v1)
 ```
 
@@ -356,7 +196,7 @@ src/
 └── __generated__/              # Shared generated code
 ```
 
-### Phase 2: Route Integration ⚠️ **MANDATORY**
+### Phase 2: Route Integration
 
 #### 2.1 Native Route Integration (Expo Router)
 
@@ -400,14 +240,14 @@ export default Sentry.wrap(RootLayout);
 **File: `src/app/(tabs)/index.tsx` (route-level example)**
 
 ```typescript
-import { useRouteVersion } from "@/lib/feature-flags";
+import { useRouteV2 } from "@/config/routes";
 import { HomeV1 } from "@/containers/homepage";
 import { HomeV2 } from "@/v2/containers/homepage";
 
 export default function HomeScreen() {
-  const useV2 = useRouteVersion("home");
+  const useV2 = useRouteV2("home");
 
-  // Route-level flag determines which component to render
+  // Route version configuration determines which component to render
   if (useV2) {
     return <HomeV2 />;
   }
@@ -419,14 +259,14 @@ export default function HomeScreen() {
 **File: `src/app/(tabs)/profile.tsx` (route-level example)**
 
 ```typescript
-import { useRouteVersion } from "@/lib/feature-flags";
+import { useRouteV2 } from "@/config/routes";
 import { ProfileV1 } from "@/containers/profile";
 import { ProfileV2 } from "@/v2/containers/profile";
 
 export default function ProfileScreen() {
-  const useV2 = useRouteVersion("profile");
+  const useV2 = useRouteV2("profile");
 
-  // Route-level flag determines which component to render
+  // Route version configuration determines which component to render
   if (useV2) {
     return <ProfileV2 />;
   }
@@ -477,7 +317,7 @@ export default Sentry.wrap(V2RootLayout);
 
 ```typescript
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useRouteVersion } from "@/lib/feature-flags";
+import { useRouteV2 } from "@/config/routes";
 import { ROUTES } from "@/constants/routes";
 // V1 components
 import { HomepagePage } from "@/app-web/pages/homepage";
@@ -499,7 +339,7 @@ function RouteWrapper({
   V1Component: React.ComponentType;
   V2Component: React.ComponentType;
 }) {
-  const useV2 = useRouteVersion(routeName as any);
+  const useV2 = useRouteV2(routeName as any);
   return useV2 ? <V2Component /> : <V1Component />;
 }
 
@@ -511,17 +351,17 @@ export default function App() {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-                {/* Home route - route-level flag determines v1 or v2 */}
+                {/* Home route - route version config determines v1 or v2 */}
                 <Route
                   path={ROUTES.Root}
                   element={<RouteWrapper routeName="home" V1Component={HomepagePage} V2Component={HomepagePageV2} />}
                 />
-                {/* Profile route - route-level flag determines v1 or v2 */}
+                {/* Profile route - route version config determines v1 or v2 */}
                 <Route
                   path={ROUTES.Profile.Root}
                   element={<RouteWrapper routeName="profile" V1Component={ProfilePage} V2Component={ProfilePageV2} />}
                 />
-                {/* Visits route - route-level flag determines v1 or v2 */}
+                {/* Visits route - route version config determines v1 or v2 */}
                 <Route
                   path={ROUTES.Visits.Root}
                   element={<RouteWrapper routeName="visits" V1Component={VisitsPage} V2Component={VisitsPageV2} />}
@@ -541,12 +381,12 @@ export default function App() {
 
 ```typescript
 // src/app-web/router.tsx (alternative approach)
-import { useRouteVersion } from "@/lib/feature-flags";
+import { useRouteV2 } from "@/config/routes";
 
 export default function App() {
-  const homeUseV2 = useRouteVersion("home");
-  const profileUseV2 = useRouteVersion("profile");
-  const visitsUseV2 = useRouteVersion("visits");
+  const homeUseV2 = useRouteV2("home");
+  const profileUseV2 = useRouteV2("profile");
+  const visitsUseV2 = useRouteV2("visits");
 
   return (
     <BrowserRouter>
@@ -614,7 +454,7 @@ export function V2AppRouter() {
 }
 ```
 
-### Phase 3: Incremental Migration Strategy ⚠️ **MANDATORY**
+### Phase 3: Incremental Migration Strategy
 
 #### 3.1 Migration Workflow
 
@@ -634,13 +474,13 @@ For each feature/module to migrate:
 
 3. **Test V2 in Isolation**
 
-   - Engineers test v2 routes with feature flag
+   - Engineers test v2 routes by toggling route version config
    - Compare behavior with v1
    - Fix issues
 
 4. **Gradual Rollout**
 
-   - Enable for more test users via feature flags
+   - Enable for more routes by updating route version config
    - Monitor for issues
    - Gradually expand user base
    - Redirect more routes to v2
@@ -696,7 +536,7 @@ import { useAuthState } from "@/v2/store/auth";
 - Tests v2 login flow
 - Compares with v1 behavior
 
-### Phase 4: Shared Code Strategy ⚠️ **MANDATORY**
+### Phase 4: Shared Code Strategy
 
 #### 4.1 Shared Utilities
 
@@ -735,41 +575,30 @@ import { useCustomHook } from "@/v1/hooks/custom"; // V1 specific
 - **Both v1 and v2 import from root**: Shared utilities remain accessible to both
 - **No duplication**: Shared code is never copied, always imported
 
-### Phase 5: Testing Strategy ⚠️ **MANDATORY**
+### Phase 5: Testing Strategy
 
-#### 5.1 Feature Flag Testing
+#### 5.1 Route Version Testing
 
 **For Engineers:**
 
-1. Add email to `FEATURE_FLAGS.V2_ROUTES.allowedEmails`
-2. Log in with that email
-3. Access v2 routes (automatically enabled)
-4. Test functionality
-5. Compare with v1 behavior
+1. Update `ROUTE_VERSIONS` in `src/config/routes.ts` to enable v2 for a route
+2. Test the v2 route functionality
+3. Compare with v1 behavior
+4. Report issues
+5. Verify fixes
 
 **For Engineers (Additional Testing):**
 
-1. Create test accounts with allowed emails
+1. Toggle route versions one at a time
 2. Test v2 routes thoroughly
-3. Report issues
-4. Verify fixes
-5. Compare v1 and v2 behavior side-by-side
+3. Compare v1 and v2 behavior side-by-side
+4. Document any differences or issues
 
-#### 5.2 A/B Testing ⚪ **OPTIONAL**
+#### 5.2 A/B Testing
 
-Once v2 is stable, can implement percentage-based rollout:
+Once v2 is stable, can implement percentage-based rollout by extending the route version configuration.
 
-```typescript
-export const FEATURE_FLAGS = {
-  V2_ROUTES: {
-    enabled: true,
-    rolloutPercentage: 10, // 10% of users
-    allowedEmails: [...],
-  },
-};
-```
-
-### Phase 6: Migration Checklist ⚠️ **MANDATORY**
+### Phase 6: Migration Checklist
 
 For each module/feature:
 
@@ -782,7 +611,7 @@ For each module/feature:
 - [ ] Fix issues
 - [ ] Document changes
 - [ ] Get team review
-- [ ] Enable for test users via feature flags
+- [ ] Enable route versions in config for testing
 - [ ] Monitor for issues
 - [ ] Gradually expand user base
 - [ ] Redirect all routes to v2 when stable
@@ -904,7 +733,7 @@ export default function App() {
 
 - ✅ **Zero Downtime**: v1 remains fully functional
 - ✅ **Isolated Testing**: Test v2 without affecting v1
-- ✅ **Easy Rollback**: Disable feature flag to revert
+- ✅ **Easy Rollback**: Toggle route version config to revert
 - ✅ **Gradual Migration**: Move at your own pace
 
 ### Development Experience
@@ -926,7 +755,7 @@ Suggested order for migration:
 
 1. **Infrastructure** (Phase 1-2)
 
-   - Feature flags
+   - Route version configuration
    - Route integration
    - Basic v2 structure
 
@@ -964,7 +793,7 @@ Suggested order for migration:
 - **Final state**: Both v1 and v2 folders coexist - v2 handles all routes, v1 is preserved
 - **Consistency**: Ensure file paths and folder names in this document match the actual codebase structure. If code structure changes, update this document accordingly.
 
-## Version Governance ⚠️ **MANDATORY**
+## Version Governance
 
 This section clarifies how v1 and v2 changes are tracked and managed to prevent confusion and maintain code quality.
 
@@ -1011,26 +840,18 @@ To prevent accidentally adding new features to v1:
 3. **Documentation**: Clear folder structure and comments indicate v1 is legacy
 4. **Team Awareness**: Regular reminders that v1 is frozen
 
-## Rollback Plan ⚠️ **MANDATORY**
+## Rollback Plan
 
-Even though feature flags and zero downtime are in place, it's important to have an explicit rollback plan in case critical issues are discovered in v2.
+Even though route version configuration and zero downtime are in place, it's important to have an explicit rollback plan in case critical issues are discovered in v2.
 
 ### To Revert to v1
 
-1. **Disable Feature Flag**
+1. **Update Route Version Config**
 
-   - Set `FEATURE_FLAGS.V2_ROUTES.enabled = false` in `src/config/feature-flags.ts`
+   - Set the route's version to `false` in `src/config/routes.ts` (e.g., `home: false`)
    - Commit and deploy immediately
 
-2. **Clear User State (if needed)**
-
-   - Clear local storage or reset clientId for affected users
-   - This ensures users don't get stuck in v2 routes
-   - Can be done via:
-     - Client-side: Clear browser/app storage
-     - Server-side: Reset user session flags (if stored)
-
-3. **Redeploy**
+2. **Redeploy**
    - v1 routes become active again automatically
    - All users will be routed back to v1 code paths
 
@@ -1059,33 +880,33 @@ To ensure smooth rollback:
 
 **Scenario 1: Critical Bug in v2**
 
-- Disable feature flag immediately
+- Set route version to `false` in config immediately
 - Investigate issue in v2
 - Fix and test thoroughly
-- Re-enable feature flag after fix
+- Re-enable route version after fix
 
 **Scenario 2: Performance Degradation**
 
-- Disable feature flag for affected users
+- Set route version to `false` for affected route
 - Investigate performance issues
 - Optimize v2 code
-- Gradual re-enablement with monitoring
+- Re-enable with monitoring
 
 **Scenario 3: User Experience Issues**
 
-- Disable feature flag
+- Set route version to `false`
 - Gather user feedback
 - Make necessary adjustments in v2
 - Re-enable with improved UX
 
-## Final Migration Steps ⚠️ **MANDATORY**
+## Final Migration Steps
 
 When all features are migrated and v2 is stable:
 
 1. **Redirect all routes to v2**
 
    - Update route handlers to point to v2
-   - Remove feature flag checks (all users use v2)
+   - Set all route versions to `true` in config (all routes use v2)
    - v2 routes now handle the same paths as v1
 
 2. **Move v1 code to `src/v1/`**
@@ -1104,7 +925,7 @@ When all features are migrated and v2 is stable:
    - Can keep v1 routes accessible at `/v1/*` for reference
    - Useful for debugging or comparison
 
-## Future Considerations ⚪ **OPTIONAL**
+## Future Considerations
 
 These are optional enhancements that can be implemented if needed:
 
@@ -1112,13 +933,4 @@ These are optional enhancements that can be implemented if needed:
 - **A/B testing**: Compare v1 vs v2 metrics during migration
 - **Automated migration**: Tools to help migrate code from v1 to v2
 - **Migration scripts**: Scripts to update imports, routes, etc.
-- **CI/CD integration**: Automated testing and deployment pipelines for v2
 - **Monitoring dashboards**: Track v1 vs v2 performance metrics
-
-## Related Documentation
-
-For more detailed information, see:
-
-- **[MIGRATION-STATUS.md](./MIGRATION-STATUS.md)** - Detailed migration tracking board
-- **[FEATURE-FLAGS.md](./FEATURE-FLAGS.md)** - Detailed feature flag design and implementation (if created)
-- **[CI-CD-CHANGES.md](./CI-CD-CHANGES.md)** - CI/CD pipeline modifications (if created)
