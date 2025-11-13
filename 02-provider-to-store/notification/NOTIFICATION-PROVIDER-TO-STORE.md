@@ -35,7 +35,6 @@ This refactoring converts `NotificationsProvider` (React Context) to `useNotific
 - **Better performance** - Zustand subscriptions are more efficient
 - **Centralized initialization** - Notification logic in `useSplashScreen`
 - **Reusable hooks** - Notification logic can be used anywhere
-- **Easier testing** - Store logic can be tested independently
 
 ## Implementation Realization
 

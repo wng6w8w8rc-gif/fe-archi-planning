@@ -7,14 +7,17 @@ This refactoring extracts responsibilities from the `InvoiceList` component into
 ### Files Affected
 
 **New Files:**
+
 - `components/hooks/use-invoice/index.ts` - Data fetching hook
 - `components/hooks/use-invoice/use-invoice-list-actions.ts` - Action handlers hook
 
 **Modified Files:**
+
 - `containers/profile/invoices/invoice-list/index.tsx` - Simplified to use hooks
 - `containers/profile/invoices/invoice-list/lib.ts` - May need enhancement
 
 **Dependencies:**
+
 - Requires `INVOICE-STORE-CONSOLIDATION.md` to be completed first
 
 ### Key Changes
@@ -28,7 +31,6 @@ This refactoring extracts responsibilities from the `InvoiceList` component into
 
 - **Better organization** with single responsibility per file
 - **Reusable hooks** that can be used across invoice-related components
-- **Easier testing** with isolated business logic
 - **Improved maintainability** with clear separation of concerns
 - **Consistent pattern** with `VisitList` component
 
@@ -328,9 +330,8 @@ import { InvoiceFilterStatusEnum } from "@/types/invoice";
 import { __ } from "@/lib/i18n";
 
 function CustomInvoiceList() {
-  const { invoices, loading, shouldShowLoadMore, onLoadMore } = 
-    useInvoiceList(InvoiceFilterStatusEnum.UNPAID);
-  
+  const { invoices, loading, shouldShowLoadMore, onLoadMore } = useInvoiceList(InvoiceFilterStatusEnum.UNPAID);
+
   const { handleViewInvoice, handlePay } = useInvoiceListActions();
 
   if (loading) {
@@ -352,12 +353,7 @@ function CustomInvoiceList() {
         />
       ))}
       {shouldShowLoadMore && (
-        <Button
-          variant="tertiary"
-          onClick={onLoadMore}
-          loading={loading}
-          children={__("Load More")}
-        />
+        <Button variant="tertiary" onClick={onLoadMore} loading={loading} children={__("Load More")} />
       )}
     </View>
   );
@@ -376,7 +372,6 @@ function CustomInvoiceList() {
 
 - ✅ Single responsibility per file
 - ✅ Reusable hooks for invoice-related components
-- ✅ Easier testing with isolated business logic
 - ✅ Consistent pattern with `VisitList` component
 - ✅ Better maintainability
 
