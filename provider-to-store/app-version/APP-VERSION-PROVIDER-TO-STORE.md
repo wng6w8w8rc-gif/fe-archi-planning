@@ -4,6 +4,20 @@
 
 This refactoring converts `AppVersionProvider` (React Context) to `useAppVersionStore` (Zustand store), following the existing store pattern in the codebase. Version check logic is extracted to `useAppVersionCheck` hook, and initialization status is passed to `useSplashScreen`.
 
+### Files Affected
+
+**New Files:**
+- `store/app-version/appVersionStore.ts` - Zustand store for app version
+- `components/hooks/use-app-version-check/index.tsx` - Version check hook
+
+**Removed Files:**
+- `components/hooks/use-app-version/index.tsx` - Provider component removed (or converted to hook only)
+
+**Modified Files:**
+- `app/_layout.tsx` - Remove AppVersionProvider, add useAppVersionCheck hook
+- All files using AppVersionContext - Update to use new store
+- `components/hooks/use-splash-screen/index.tsx` - Add appVersionInitDone parameter
+
 ### Key Changes
 
 - **AppVersionProvider** → `useAppVersionStore` (Zustand store)

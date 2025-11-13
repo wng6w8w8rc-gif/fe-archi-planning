@@ -4,6 +4,22 @@
 
 This refactoring consolidates the four nearly identical visit list stores into a single factory function to eliminate code duplication and improve maintainability.
 
+### Files Affected
+
+**New Files:**
+- `store/visits/createVisitListStore.ts` - Factory function
+- `store/visits/visitListStores.ts` - Store exports
+
+**Removed Files:**
+- `store/visits/next7dayVisits.ts`
+- `store/visits/next30dayVisits.ts`
+- `store/visits/unscheduledVisits.ts`
+- `store/visits/past30dayVisits.ts`
+
+**Modified Files:**
+- `containers/visits/visit-list/lib.ts` - Update imports to use new store exports
+- Any files importing the old store files
+
 ### Key Changes
 
 - **Single factory function** `createVisitListStore` replaces 4 duplicate store files

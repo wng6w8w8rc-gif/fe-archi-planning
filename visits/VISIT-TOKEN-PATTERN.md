@@ -4,6 +4,28 @@
 
 This refactoring consolidates the duplicate visit operation stores that handle both authenticated and token-based access. Currently, there are separate stores for each operation type (visit detail, rate, reschedule, cancel) that differ only in authentication method.
 
+### Files Affected
+
+**New Files:**
+
+- `store/visits/createVisitOperationStore.ts` - Factory function (Option 1)
+- OR unified store files if using Option 2 or 3
+
+**Removed Files (if using factory approach):**
+
+- `store/visits/visitTokenStore.ts` (consolidated into `visitStore.ts`)
+- `store/visits/useRateVisitWithToken.ts` (consolidated into `useRateVisit.ts`)
+- `store/visits/useClientRescheduleWithToken.ts` (consolidated into `useClientRescheduleVisit.ts`)
+- `store/visits/useCancelVisitWithToken.ts` (consolidated into `useClientCancelVisit.ts`)
+
+**Modified Files:**
+
+- `store/visits/visitStore.ts` - Add token support
+- `store/visits/useRateVisit.ts` - Add token support
+- `store/visits/useClientRescheduleVisit.ts` - Add token support
+- `store/visits/useClientCancelVisit.ts` - Add token support
+- All files using the token-based stores
+
 ### Key Changes
 
 - **Unified store pattern** that handles both auth and token variants
@@ -220,4 +242,3 @@ setUseToken(true); // switch to token mode
 - Token operations might not require authentication state
 - Consider if separate stores are actually needed for clarity
 - May want to keep separate if they diverge significantly in the future
-

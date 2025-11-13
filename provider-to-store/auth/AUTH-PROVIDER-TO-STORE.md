@@ -4,6 +4,22 @@
 
 This refactoring converts `AuthProvider` (React Context) to `useAuthStore` (Zustand store), following the existing store pattern in the codebase. Session restoration logic is extracted to `useAuthSession` hook, and initialization status is passed to `useSplashScreen`.
 
+### Files Affected
+
+**New Files:**
+- `store/auth/authStore.ts` - Zustand store for auth state
+- `components/hooks/use-auth/index.tsx` - Custom hook (replaces `useAuth()`)
+- `components/hooks/use-auth-session/index.tsx` - Session restoration hook
+
+**Removed Files:**
+- `components/shared/auth-provider/index.tsx` - Provider component removed
+
+**Modified Files:**
+- `app/_layout.tsx` - Remove AuthProvider, add useAuthSession hook
+- `app-web/router.tsx` - Remove AuthProvider, add useAuthSession hook
+- All files using `useAuth()` from auth-provider - Update to use new hook
+- `components/hooks/use-splash-screen/index.tsx` - Add authInitDone parameter
+
 ### Key Changes
 
 - **AuthProvider** → `useAuthStore` (Zustand store)

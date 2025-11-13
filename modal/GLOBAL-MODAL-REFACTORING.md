@@ -4,6 +4,33 @@
 
 This refactoring consolidates all modal state management from multiple scattered stores into a single global modal store (`useGlobalModalStore`) with a unified modal component rendered at the layout level. This eliminates modal state duplication, standardizes modal behavior, and simplifies modal management across the codebase.
 
+### Files Affected
+
+**New Files:**
+
+- `store/modal/globalModalStore.ts` - Global modal store
+- `components/shared/global-modal/index.tsx` - Unified modal renderer component
+
+**Modified Files:**
+
+- `store/visits/visitDetail.ts` - Remove modal states and methods
+- `store/auth/index.ts` - Remove modal states and `showModal` method
+- `store/profile/index.ts` - Remove modal states and `showModal` method
+- `store/invoices/index.ts` - Remove modal states and `showPaymentMethodModal` method
+- `store/booking/useBookingState.ts` - Remove modal boolean states
+- `store/report-issue/visit-issue/visitIssue.ts` - Remove `showModal` state
+- `store/report-issue/package-issue/packageIssue.ts` - Remove `showModal` state
+- `store/sharer/index.ts` - Remove entire store (if only used for modal)
+- `containers/visits/visit-detail/index.tsx` - Remove conditional modal rendering
+- `containers/auth/index.tsx` - Remove conditional modal rendering
+- `app/_layout.tsx` - Add GlobalModal component, remove individual modal containers
+- `app-web/router.tsx` - Add GlobalModal component (if applicable)
+
+**Removed Files:**
+
+- `containers/visits/visit-detail/index.tsx` - May be simplified or removed if only used for modals
+- Individual modal container files that are no longer needed
+
 ### Key Changes
 
 - **Single global modal store** replaces 8+ modal stores across the codebase

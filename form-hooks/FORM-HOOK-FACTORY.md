@@ -4,6 +4,29 @@
 
 This refactoring creates a factory function to standardize form hook creation across the codebase. Multiple form hooks follow the same pattern using `react-hook-form` with `zod` validation, but each is implemented separately with boilerplate code.
 
+### Files Affected
+
+**New Files:**
+
+- `lib/forms/createFormHook.ts` - Factory function
+
+**Modified Files:**
+
+- `store/auth/forms/useContactForm.ts`
+- `store/auth/forms/useAddressForm.ts`
+- `store/auth/forms/useSignUpForm.ts`
+- `store/auth/forms/useEmailLoginForm.ts`
+- `store/auth/forms/useLoginForm.ts`
+- `store/auth/forms/usePostalCodeForm.ts`
+- `store/feedback/useFeedbackForm.tsx`
+- `store/report-issue/forms/useReportIssueForm.tsx`
+- `containers/booking-info/useBookingInfoForm.tsx`
+- `containers/booking/services/elder-care-booking/elder-care-form-modal/useElderCareForm.tsx`
+- `containers/profile/service-profile/service-profile-form/elder/useElderCareForm.tsx`
+- `containers/profile/service-profile/service-profile-form/baby/useBabyProfileForm.tsx`
+- `containers/profile/service-profile/service-profile-form/pet/usePetProfileForm.tsx`
+- Other form hooks following the same pattern
+
 ### Key Changes
 
 - **Factory function** `createFormHook` standardizes form hook creation

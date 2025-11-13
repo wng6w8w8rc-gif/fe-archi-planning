@@ -4,6 +4,23 @@
 
 This refactoring converts `NotificationsProvider` (React Context) to `useNotificationsStore` (Zustand store), following the existing store pattern in the codebase. Notification initialization logic is extracted to `useNotificationsInit` hook, and initialization status is passed to `useSplashScreen`.
 
+### Files Affected
+
+**New Files:**
+- `store/notifications/notificationsStore.ts` - Zustand store for notifications
+- `components/hooks/use-notifications/index.tsx` - Custom hook (replaces context usage)
+- `components/hooks/use-notifications-init/index.tsx` - Notification initialization hook
+
+**Removed Files:**
+- `containers/notifications/notification-provider/index.native.tsx` - Provider component removed
+- `containers/notifications/notification-provider/index.web.tsx` - Provider component removed (if exists)
+- `containers/notifications/notification-provider/lib.tsx` - Context file removed
+
+**Modified Files:**
+- `app/_layout.tsx` - Remove NotificationsProvider, add useNotificationsInit hook
+- All files using NotificationsContext - Update to use new hook
+- `components/hooks/use-splash-screen/index.tsx` - Add notificationsInitDone parameter
+
 ### Key Changes
 
 - **NotificationsProvider** → `useNotificationsStore` (Zustand store)

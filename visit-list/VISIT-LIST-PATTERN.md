@@ -4,6 +4,18 @@
 
 This refactoring extracts responsibilities from the `VisitList` component into custom hooks and configuration files to improve separation of concerns, maintainability, and testability.
 
+### Files Affected
+
+**New Files:**
+
+- `components/hooks/use-visit/index.ts` - Data fetching hook
+- `components/hooks/use-visit/use-visit-list-actions.ts` - Action handlers hook
+- `containers/visits/visit-list/lib.ts` - Configuration file (if not exists)
+
+**Modified Files:**
+
+- `containers/visits/visit-list/index.tsx` - Simplified to use hooks
+
 ### Key Changes
 
 - **Configuration** extracted to `lib.ts` (from inline in component)

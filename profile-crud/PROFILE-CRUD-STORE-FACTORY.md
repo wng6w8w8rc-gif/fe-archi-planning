@@ -4,6 +4,28 @@
 
 This refactoring consolidates the Create/Update/Delete operations for profile entities (addresses, contacts, service profiles) into factory functions to eliminate code duplication. All three entity types follow the same CRUD pattern with only minor differences in GraphQL documents and userInfo field names.
 
+### Files Affected
+
+**New Files:**
+- `store/profile/createProfileCRUDStore.ts` - Factory function
+- `store/profile/addressCRUDStores.ts` - Address CRUD exports
+- `store/profile/contactCRUDStores.ts` - Contact CRUD exports
+- `store/profile/serviceProfileCRUDStores.ts` - Service profile CRUD exports
+
+**Removed Files:**
+- `store/profile/createAddress.ts`
+- `store/profile/updateAddress.ts`
+- `store/profile/deleteAddress.ts`
+- `store/profile/createContact.ts`
+- `store/profile/updateContact.ts`
+- `store/profile/deleteContact.ts`
+- `store/profile/createClientServiceProfile.ts`
+- `store/profile/updateClientServiceProfile.ts`
+- `store/profile/deleteClientServiceProfile.ts`
+
+**Modified Files:**
+- All files importing the old CRUD stores (containers, components, etc.)
+
 ### Key Changes
 
 - **Single factory function** `createProfileCRUDStore` replaces 9 duplicate store files

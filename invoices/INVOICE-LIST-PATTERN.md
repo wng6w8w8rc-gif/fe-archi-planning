@@ -4,6 +4,19 @@
 
 This refactoring extracts responsibilities from the `InvoiceList` component into custom hooks and configuration files to improve separation of concerns, maintainability, and testability. This follows the same pattern as the `VisitList` component refactoring.
 
+### Files Affected
+
+**New Files:**
+- `components/hooks/use-invoice/index.ts` - Data fetching hook
+- `components/hooks/use-invoice/use-invoice-list-actions.ts` - Action handlers hook
+
+**Modified Files:**
+- `containers/profile/invoices/invoice-list/index.tsx` - Simplified to use hooks
+- `containers/profile/invoices/invoice-list/lib.ts` - May need enhancement
+
+**Dependencies:**
+- Requires `INVOICE-STORE-CONSOLIDATION.md` to be completed first
+
 ### Key Changes
 
 - **Configuration** extracted to `lib.ts` (already exists, may need enhancement)

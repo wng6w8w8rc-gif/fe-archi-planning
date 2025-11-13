@@ -4,6 +4,20 @@
 
 This refactoring consolidates the two nearly identical invoice list stores (`paidInvoices` and `unpaidInvoices`) into a single factory function to eliminate code duplication and improve maintainability. This follows the same pattern as the visit store consolidation.
 
+### Files Affected
+
+**New Files:**
+- `store/invoices/createInvoiceListStore.ts` - Factory function
+- `store/invoices/invoiceListStores.ts` - Store exports
+
+**Removed Files:**
+- `store/invoices/paidInvoices.ts`
+- `store/invoices/unpaidInvoices.ts`
+
+**Modified Files:**
+- `containers/profile/invoices/invoice-list/index.tsx` - Update imports to use new store exports
+- Any files importing the old store files
+
 ### Key Changes
 
 - **Single factory function** `createInvoiceListStore` replaces 2 duplicate store files
