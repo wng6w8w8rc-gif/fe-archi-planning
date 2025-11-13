@@ -1,5 +1,30 @@
 # V2 Refactoring Plan - Parallel Folder Approach
 
+## Table of Contents
+
+- [Summary](#summary)
+- [Migration Status Board](#migration-status-board) ⚠️ **MANDATORY: Keep Updated**
+- [Implementation Strategy](#implementation-strategy)
+  - [Phase 1: Infrastructure Setup](#phase-1-infrastructure-setup) ⚠️ **MANDATORY**
+  - [Phase 2: Route Integration](#phase-2-route-integration) ⚠️ **MANDATORY**
+  - [Phase 3: Incremental Migration Strategy](#phase-3-incremental-migration-strategy) ⚠️ **MANDATORY**
+  - [Phase 4: Shared Code Strategy](#phase-4-shared-code-strategy) ⚠️ **MANDATORY**
+  - [Phase 5: Testing Strategy](#phase-5-testing-strategy) ⚠️ **MANDATORY**
+  - [Phase 6: Migration Checklist](#phase-6-migration-checklist) ⚠️ **MANDATORY**
+- [Example: Complete Migration Flow](#example-complete-migration-flow)
+- [Version Governance](#version-governance) ⚠️ **MANDATORY**
+- [Rollback Plan](#rollback-plan) ⚠️ **MANDATORY**
+- [Final Migration Steps](#final-migration-steps) ⚠️ **MANDATORY**
+- [Benefits](#benefits)
+- [Migration Priority](#migration-priority)
+- [Notes](#notes)
+- [Future Considerations](#future-considerations) ⚪ **OPTIONAL**
+
+**Legend:**
+
+- ⚠️ **MANDATORY** - Required sections that must be followed
+- ⚪ **OPTIONAL** - Nice-to-have sections for future improvements
+
 ## Summary
 
 This document outlines the strategy for executing a BIG refactoring of the luce-fe React Native multiplatform codebase (web and app) using a **Parallel "v2" Folder Approach** with **Incremental Isolation**. This approach allows gradual migration of code while maintaining the existing v1 codebase fully functional, enabling safe, incremental refactoring with zero downtime.
@@ -42,9 +67,44 @@ This document outlines the strategy for executing a BIG refactoring of the luce-
 - `src/components/shared/auth-provider/index.tsx` - Add feature flag check
 - `src/constants/routes.ts` - Add v2 route constants
 
+## Migration Status Board ⚠️ **MANDATORY: Keep Updated**
+
+> **Note**: For detailed migration tracking, see [MIGRATION-STATUS.md](./MIGRATION-STATUS.md)
+
+This board tracks the migration status of each module from v1 to v2. Update this section as modules are migrated.
+
+| Module                     | Status         | Route Flag        | Engineers Testing | Notes                         |
+| -------------------------- | -------------- | ----------------- | ----------------- | ----------------------------- |
+| **Infrastructure**         |                |                   |                   |                               |
+| Feature Flags              | ✅ Complete    | N/A               | All               | Route-level flags implemented |
+| Route Integration (Native) | 🔄 In Progress | N/A               | Gio, Fathul       | Basic structure in place      |
+| Route Integration (Web)    | 🔄 In Progress | N/A               | Gio, Fathul       | Basic structure in place      |
+| **Core Features**          |                |                   |                   |                               |
+| Authentication             | ⏳ Not Started | `login`, `signup` | -                 | -                             |
+| Homepage                   | ⏳ Not Started | `home`            | -                 | -                             |
+| Profile                    | ⏳ Not Started | `profile`         | -                 | -                             |
+| Visits                     | ⏳ Not Started | `visits`          | -                 | -                             |
+| Booking                    | ⏳ Not Started | `booking`         | -                 | -                             |
+| Rewards                    | ⏳ Not Started | `rewards`         | -                 | -                             |
+| Notifications              | ⏳ Not Started | `notifications`   | -                 | -                             |
+| **Shared Modules**         |                |                   |                   |                               |
+| GraphQL Client             | ✅ Complete    | N/A               | All               | Shared, no migration needed   |
+| Monitoring                 | ✅ Complete    | N/A               | All               | Shared, no migration needed   |
+| Assets                     | ✅ Complete    | N/A               | All               | Shared, no migration needed   |
+
+**Status Legend:**
+
+- ✅ **Complete** - Fully migrated, tested, and in production
+- 🔄 **In Progress** - Currently being migrated
+- ⏳ **Not Started** - Not yet migrated
+- 🐛 **Blocked** - Migration blocked by dependencies or issues
+- 🔍 **Review** - Awaiting code review
+
+**Last Updated**: [Update this date when modifying the board]
+
 ## Implementation Strategy
 
-### Phase 1: Infrastructure Setup
+### Phase 1: Infrastructure Setup ⚠️ **MANDATORY**
 
 #### 1.1 Feature Flag System
 
@@ -296,7 +356,7 @@ src/
 └── __generated__/              # Shared generated code
 ```
 
-### Phase 2: Route Integration
+### Phase 2: Route Integration ⚠️ **MANDATORY**
 
 #### 2.1 Native Route Integration (Expo Router)
 
@@ -554,7 +614,7 @@ export function V2AppRouter() {
 }
 ```
 
-### Phase 3: Incremental Migration Strategy
+### Phase 3: Incremental Migration Strategy ⚠️ **MANDATORY**
 
 #### 3.1 Migration Workflow
 
@@ -636,7 +696,7 @@ import { useAuthState } from "@/v2/store/auth";
 - Tests v2 login flow
 - Compares with v1 behavior
 
-### Phase 4: Shared Code Strategy
+### Phase 4: Shared Code Strategy ⚠️ **MANDATORY**
 
 #### 4.1 Shared Utilities
 
@@ -675,7 +735,7 @@ import { useCustomHook } from "@/v1/hooks/custom"; // V1 specific
 - **Both v1 and v2 import from root**: Shared utilities remain accessible to both
 - **No duplication**: Shared code is never copied, always imported
 
-### Phase 5: Testing Strategy
+### Phase 5: Testing Strategy ⚠️ **MANDATORY**
 
 #### 5.1 Feature Flag Testing
 
@@ -695,7 +755,7 @@ import { useCustomHook } from "@/v1/hooks/custom"; // V1 specific
 4. Verify fixes
 5. Compare v1 and v2 behavior side-by-side
 
-#### 5.2 A/B Testing (Future)
+#### 5.2 A/B Testing ⚪ **OPTIONAL**
 
 Once v2 is stable, can implement percentage-based rollout:
 
@@ -709,7 +769,7 @@ export const FEATURE_FLAGS = {
 };
 ```
 
-### Phase 6: Migration Checklist
+### Phase 6: Migration Checklist ⚠️ **MANDATORY**
 
 For each module/feature:
 
@@ -902,8 +962,9 @@ Suggested order for migration:
 - **Performance**: Monitor v2 performance compared to v1
 - **User feedback**: Collect feedback from engineers testing v2
 - **Final state**: Both v1 and v2 folders coexist - v2 handles all routes, v1 is preserved
+- **Consistency**: Ensure file paths and folder names in this document match the actual codebase structure. If code structure changes, update this document accordingly.
 
-## Version Governance
+## Version Governance ⚠️ **MANDATORY**
 
 This section clarifies how v1 and v2 changes are tracked and managed to prevent confusion and maintain code quality.
 
@@ -950,7 +1011,7 @@ To prevent accidentally adding new features to v1:
 3. **Documentation**: Clear folder structure and comments indicate v1 is legacy
 4. **Team Awareness**: Regular reminders that v1 is frozen
 
-## Rollback Plan
+## Rollback Plan ⚠️ **MANDATORY**
 
 Even though feature flags and zero downtime are in place, it's important to have an explicit rollback plan in case critical issues are discovered in v2.
 
@@ -1017,7 +1078,7 @@ To ensure smooth rollback:
 - Make necessary adjustments in v2
 - Re-enable with improved UX
 
-## Final Migration Steps
+## Final Migration Steps ⚠️ **MANDATORY**
 
 When all features are migrated and v2 is stable:
 
@@ -1043,9 +1104,21 @@ When all features are migrated and v2 is stable:
    - Can keep v1 routes accessible at `/v1/*` for reference
    - Useful for debugging or comparison
 
-## Future Considerations
+## Future Considerations ⚪ **OPTIONAL**
+
+These are optional enhancements that can be implemented if needed:
 
 - **Percentage-based rollout**: During migration, enable for percentage of users
 - **A/B testing**: Compare v1 vs v2 metrics during migration
 - **Automated migration**: Tools to help migrate code from v1 to v2
 - **Migration scripts**: Scripts to update imports, routes, etc.
+- **CI/CD integration**: Automated testing and deployment pipelines for v2
+- **Monitoring dashboards**: Track v1 vs v2 performance metrics
+
+## Related Documentation
+
+For more detailed information, see:
+
+- **[MIGRATION-STATUS.md](./MIGRATION-STATUS.md)** - Detailed migration tracking board
+- **[FEATURE-FLAGS.md](./FEATURE-FLAGS.md)** - Detailed feature flag design and implementation (if created)
+- **[CI-CD-CHANGES.md](./CI-CD-CHANGES.md)** - CI/CD pipeline modifications (if created)
