@@ -204,6 +204,172 @@ const { data, setUseToken } = useVisitStore();
 setUseToken(true); // switch to token mode
 ```
 
+### Usage Examples
+
+**Example 1: Using Auth-Based Visit Store**
+
+```typescript
+import { View, Skeleton } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useVisitStore } from "@/store/visits/visitStore";
+import { useShallow } from "zustand/react/shallow";
+
+function VisitDetail({ visitId }: { visitId: string }) {
+  const { data: visit, loading, fetch } = useVisitStore(
+    useShallow((state) => state)
+  );
+
+  useEffect(() => {
+    fetch({
+      requestPayload: { id: visitId },
+    });
+  }, [visitId, fetch]);
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[200px] w-full" />
+      </>
+    );
+  }
+  if (!visit) return null;
+
+  return (
+    <View>
+      <Typography variant="h1">{visit.serviceName}</Typography>
+      <Typography variant="body-md">Date: {visit.date}</Typography>
+    </View>
+  );
+}
+```
+
+**Example 2: Using Token-Based Visit Store**
+
+```typescript
+import { View, Skeleton } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useVisitTokenStore } from "@/store/visits/visitStore";
+import { useShallow } from "zustand/react/shallow";
+
+function VisitDetailWithToken({ token }: { token: string }) {
+  const { data: visit, loading, fetch } = useVisitTokenStore(
+    useShallow((state) => state)
+  );
+
+  useEffect(() => {
+    fetch({
+      requestPayload: { token },
+    });
+  }, [token, fetch]);
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[200px] w-full" />
+      </>
+    );
+  }
+  if (!visit) return null;
+
+  return (
+    <View>
+      <Typography variant="h1">{visit.serviceName}</Typography>
+      <Typography variant="body-md">Date: {visit.date}</Typography>
+    </View>
+  );
+}
+```
+
+**Example 3: Unified Store with Runtime Selection (Option 3)**
+
+```typescript
+import { View, Skeleton } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useVisitStore } from "@/store/visits/visitStore";
+import { useShallow } from "zustand/react/shallow";
+
+function VisitDetail({ visitId, token }: { visitId?: string; token?: string }) {
+  const { data: visit, loading, fetch, setUseToken } = useVisitStore(
+    useShallow((state) => state)
+  );
+
+  useEffect(() => {
+    if (token) {
+      setUseToken(true);
+      fetch({ requestPayload: { token } });
+    } else if (visitId) {
+      setUseToken(false);
+      fetch({ requestPayload: { id: visitId } });
+    }
+  }, [visitId, token, fetch, setUseToken]);
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[200px] w-full" />
+      </>
+    );
+  }
+  if (!visit) return null;
+
+  return (
+    <View>
+      <Typography variant="h1">{visit.serviceName}</Typography>
+    </View>
+  );
+}
+```
+
+**Example 4: Rating a Visit (Auth vs Token)**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { useRateVisitStore } from "@/store/visits/useRateVisit";
+import { useRateVisitWithTokenStore } from "@/store/visits/useRateVisit";
+import { showToast } from "@/components/ui/toast/show-toast";
+import { __ } from "@/lib/i18n";
+
+function RateVisitButton({ visitId, token }: { visitId?: string; token?: string }) {
+  const rateVisit = useRateVisitStore((state) => state.fetch);
+  const rateVisitWithToken = useRateVisitWithTokenStore((state) => state.fetch);
+
+  const handleRate = async (rating: number) => {
+    try {
+      if (token) {
+        await rateVisitWithToken({
+          requestPayload: { token, rating },
+          selfHandleError: true,
+        });
+      } else if (visitId) {
+        await rateVisit({
+          requestPayload: { visitId, rating },
+          selfHandleError: true,
+        });
+      }
+      showToast({
+        type: "success",
+        title: __("Thank you for your feedback"),
+      });
+    } catch (error) {
+      // Error handled by selfHandleError
+    }
+  };
+
+  return (
+    <View className="flex flex-row gap-2">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Button
+          key={star}
+          variant="tertiary"
+          onClick={() => handleRate(star)}
+          children="⭐"
+        />
+      ))}
+    </View>
+  );
+}
+```
+
 ## Migration Summary
 
 **Code Reduction**:

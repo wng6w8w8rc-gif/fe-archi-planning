@@ -211,6 +211,148 @@ const form = useContactForm();
 const form = useContactForm({ firstName: "John", ... });
 ```
 
+### Usage Examples
+
+**Example 1: Basic Form Usage**
+
+```typescript
+import { View, Button, Input } from "@/components/ui";
+import { InputFormControl } from "@/components/shared/input-form-control";
+import { useContactForm } from "@/store/auth/forms/useContactForm";
+import { useCreateContactStore } from "@/store/profile/createContact";
+import { __ } from "@/lib/i18n";
+
+function ContactForm() {
+  const { control, handleSubmit } = useContactForm();
+  const { fetch: createContact, loading } = useCreateContactStore();
+
+  const onSubmit = handleSubmit(async (data) => {
+    await createContact({
+      requestPayload: {
+        input: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          // ... other fields
+        },
+      },
+    });
+  });
+
+  return (
+    <View>
+      <InputFormControl
+        name="firstName"
+        label={__("First Name")}
+        control={control}
+        component={Input}
+        componentProps={{
+          placeholder: __("Your First Name"),
+        }}
+      />
+      <InputFormControl
+        name="lastName"
+        label={__("Last Name")}
+        control={control}
+        component={Input}
+        componentProps={{
+          placeholder: __("Your Last Name"),
+        }}
+      />
+      <Button variant="primary" onClick={onSubmit} loading={loading} children={__("Submit")} />
+    </View>
+  );
+}
+```
+
+**Example 2: Form with Initial Values (Edit Mode)**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { InputFormControl } from "@/components/shared/input-form-control";
+import { useContactForm } from "@/store/auth/forms/useContactForm";
+import { useUpdateContactStore } from "@/store/profile/updateContact";
+import { useClientStore } from "@/store/auth/client";
+import type { Contact } from "@/types/users";
+
+function EditContactForm({ contact }: { contact: Contact }) {
+  const { control, handleSubmit } = useContactForm({
+    id: contact.id,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    email: contact.email?.map((email) => ({ value: email })),
+    phoneNumber: contact.phoneNumber?.map((phone) => ({
+      value: phone,
+      nationCode: "SG/65",
+    })),
+  });
+
+  const { fetch: updateContact, loading } = useUpdateContactStore();
+  const { fetch: client } = useClientStore();
+
+  const onSubmit = handleSubmit(async (data) => {
+    await updateContact({
+      requestPayload: {
+        input: {
+          id: contact.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          // ... other fields
+        },
+      },
+    });
+    // Refresh client data
+    await client({ requestPayload: { id: contact.clientId } });
+  });
+
+  return (
+    <View>
+      <InputFormControl name="firstName" label={__("First Name")} control={control} component={Input} />
+      <Button variant="primary" onClick={onSubmit} loading={loading} children={__("Update")} />
+    </View>
+  );
+}
+```
+
+**Example 3: Creating a New Form Hook**
+
+```typescript
+// store/auth/forms/useNewForm.ts
+import { z } from "zod";
+import { createFormHook } from "@/lib/forms/createFormHook";
+import { __ } from "@/lib/i18n";
+
+const newFormSchema = z.object({
+  name: z.string().min(1, __("Name is required")),
+  email: z.string().email(__("Invalid email")),
+});
+
+export type NewFormData = z.input<typeof newFormSchema>;
+
+export const useNewForm = createFormHook({
+  schema: newFormSchema,
+  defaultValues: {
+    name: "",
+    email: "",
+  },
+});
+
+// Usage in component
+function NewFormComponent() {
+  const { control, handleSubmit } = useNewForm();
+
+  const onSubmit = handleSubmit((data) => {
+    console.log(data);
+  });
+
+  return (
+    <View>
+      <InputFormControl name="name" label={__("Name")} control={control} component={Input} />
+      <Button onClick={onSubmit} children={__("Submit")} />
+    </View>
+  );
+}
+```
+
 ## Migration Summary
 
 **Code Reduction**:

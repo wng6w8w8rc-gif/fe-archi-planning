@@ -386,3 +386,158 @@ function RootLayout() {
   );
 }
 ```
+
+### Usage Examples
+
+**Example 1: Using Auth Hook in Components**
+
+```typescript
+import { View, Skeleton } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useAuth } from "@/components/hooks/use-auth";
+import { LoginPrompt } from "@/components/shared/login-prompt";
+
+function ProtectedComponent() {
+  const { isAuthenticated, isLoading, isGuest, clientId } = useAuth();
+
+  if (isLoading) {
+    return (
+      <>
+        <Skeleton className="h-[200px] w-full" />
+      </>
+    );
+  }
+  if (isGuest) return <LoginPrompt />;
+
+  return (
+    <View>
+      <Typography variant="h1">Welcome! Client ID: {clientId}</Typography>
+      {/* Protected content */}
+    </View>
+  );
+}
+```
+
+**Example 2: Login Flow**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { useAuth } from "@/components/hooks/use-auth";
+import { useSignInMutation } from "@/gqlhooks/auth/useSignInMutation";
+import { showToast } from "@/components/ui/toast/show-toast";
+import { getErrorMessage } from "@/lib/helpers/string";
+import { __ } from "@/lib/i18n";
+
+function LoginForm() {
+  const { login } = useAuth();
+  const [signIn, { loading }] = useSignInMutation();
+
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const response = await signIn({
+        variables: {
+          input: { email, password },
+        },
+      });
+      
+      if (response.data?.signIn) {
+        login({
+          jwt: response.data.signIn.token,
+          refreshToken: response.data.signIn.refreshToken,
+          clientId: response.data.signIn.clientId,
+        });
+      }
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: getErrorMessage(error, __("Login failed")),
+      });
+    }
+  };
+
+  return (
+    <View>
+      {/* Form fields */}
+      <Button
+        variant="primary"
+        onClick={() => handleLogin(email, password)}
+        loading={loading}
+        children={__("Login")}
+      />
+    </View>
+  );
+}
+```
+
+**Example 3: Logout Flow**
+
+```typescript
+import { Button } from "@/components/ui";
+import { useAuth } from "@/components/hooks/use-auth";
+import { useRoute } from "@/components/shared/router";
+import { __ } from "@/lib/i18n";
+
+function LogoutButton() {
+  const { logout } = useAuth();
+  const { push } = useRoute();
+
+  const handleLogout = async () => {
+    await logout();
+    push({ pageKey: "login" });
+  };
+
+  return (
+    <Button
+      variant="tertiary"
+      onClick={handleLogout}
+      children={__("Logout")}
+    />
+  );
+}
+```
+
+**Example 4: Accessing Auth State Directly from Store**
+
+```typescript
+import { View } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useAuthStore } from "@/store/auth/authStore";
+
+function SomeComponent() {
+  // Direct store access if needed
+  const clientId = useAuthStore((state) => state.data.clientId);
+  const isGuest = useAuthStore((state) => state.data.isGuest);
+
+  return (
+    <View>
+      <Typography variant="body-md">Client: {clientId}</Typography>
+      <Typography variant="body-sm">Guest: {isGuest ? "Yes" : "No"}</Typography>
+    </View>
+  );
+}
+```
+
+## Migration Summary
+
+**Code Reduction**:
+
+- **Before**: Provider component with React Context (~150 lines)
+- **After**: Zustand store (~150 lines) + hooks (~50 lines) = ~200 lines
+- **Net change**: Slight increase but better architecture and performance
+
+**Benefits**:
+
+- ✅ Consistent state management pattern
+- ✅ No provider nesting
+- ✅ Better performance with Zustand subscriptions
+- ✅ Reusable hooks
+- ✅ Easier testing
+
+**Migration Strategy**:
+
+1. Create `useAuthStore` Zustand store
+2. Create `useAuth` hook
+3. Create `useAuthSession` hook for initialization
+4. Update `_layout.tsx` to use hooks instead of provider
+5. Update all components using `useAuth()` from provider
+6. Remove `AuthProvider` component

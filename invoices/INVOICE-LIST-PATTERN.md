@@ -297,6 +297,73 @@ export function InvoiceList({ type }: { type: InvoiceFilterStatusEnum }) {
 }
 ```
 
+### Usage Examples
+
+**Example 1: Using the InvoiceList Component**
+
+```typescript
+import { View } from "@/components/ui";
+import { InvoiceList } from "@/containers/profile/invoices/invoice-list";
+import { InvoiceFilterStatusEnum } from "@/types/invoice";
+
+function InvoicesPage() {
+  return (
+    <View className="flex flex-col gap-6">
+      <InvoiceList type={InvoiceFilterStatusEnum.UNPAID} />
+      <InvoiceList type={InvoiceFilterStatusEnum.PAID} />
+    </View>
+  );
+}
+```
+
+**Example 2: Using the Hooks Directly**
+
+```typescript
+import { View, Button, Skeleton } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useInvoiceList } from "@/components/hooks/use-invoice";
+import { useInvoiceListActions } from "@/components/hooks/use-invoice/use-invoice-list-actions";
+import { InvoiceCard } from "@/components/shared/invoices/invoice-card";
+import { InvoiceFilterStatusEnum } from "@/types/invoice";
+import { __ } from "@/lib/i18n";
+
+function CustomInvoiceList() {
+  const { invoices, loading, shouldShowLoadMore, onLoadMore } = 
+    useInvoiceList(InvoiceFilterStatusEnum.UNPAID);
+  
+  const { handleViewInvoice, handlePay } = useInvoiceListActions();
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[120px] w-full" />
+      </>
+    );
+  }
+
+  return (
+    <View className="flex flex-col gap-4">
+      {invoices.map((invoice) => (
+        <InvoiceCard
+          key={invoice.id}
+          {...invoice}
+          onClick={handleViewInvoice(invoice.id)}
+          onPay={handlePay(invoice.id)}
+        />
+      ))}
+      {shouldShowLoadMore && (
+        <Button
+          variant="tertiary"
+          onClick={onLoadMore}
+          loading={loading}
+          children={__("Load More")}
+        />
+      )}
+    </View>
+  );
+}
+```
+
 ## Migration Summary
 
 **Code Reduction**:

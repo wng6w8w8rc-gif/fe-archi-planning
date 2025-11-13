@@ -268,6 +268,217 @@ export const useDeleteAddressStore = addressCRUD.delete;
 // Similar pattern with serviceProfiles configuration
 ```
 
+### Usage Examples
+
+**Example 1: Creating an Address**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { useCreateAddressStore } from "@/store/profile/addressCRUDStores";
+import { useAddressForm } from "@/store/auth/forms/useAddressForm";
+import { useAuthState } from "@/store/auth";
+import { useRoute } from "@/components/shared/router";
+import { showToast } from "@/components/ui/toast/show-toast";
+import { __ } from "@/lib/i18n";
+
+function AddAddressForm() {
+  const { pull } = useRoute();
+  const { data: { userInfo } } = useAuthState();
+  const { fetch: createAddress, loading } = useCreateAddressStore();
+  const { control, handleSubmit } = useAddressForm();
+
+  const onSubmit = handleSubmit(async (data) => {
+    const result = await createAddress({
+      requestPayload: {
+        input: {
+          clientId: userInfo.id,
+          street: data.street,
+          postalCode: data.postalCode,
+          // ... other fields
+        },
+      },
+      selfHandleError: true,
+    });
+    
+    if (result.data?.address) {
+      showToast({
+        type: "success",
+        title: __("Success create address"),
+      });
+      pull();
+    }
+  });
+
+  return (
+    <View>
+      {/* Form fields using InputFormControl with control */}
+      <Button
+        variant="primary"
+        onClick={onSubmit}
+        loading={loading}
+        children={__("Create Address")}
+      />
+    </View>
+  );
+}
+```
+
+**Example 2: Updating a Contact**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { useUpdateContactStore } from "@/store/profile/contactCRUDStores";
+import { useContactForm } from "@/store/auth/forms/useContactForm";
+import { useClientStore } from "@/store/auth/client";
+import { useRoute } from "@/components/shared/router";
+import { showToast } from "@/components/ui/toast/show-toast";
+import { __ } from "@/lib/i18n";
+import type { Contact } from "@/types/users";
+
+function EditContactForm({ contact }: { contact: Contact }) {
+  const { pull } = useRoute();
+  const { fetch: updateContact, loading } = useUpdateContactStore();
+  const { fetch: client } = useClientStore();
+  const { control, handleSubmit } = useContactForm({
+    id: contact.id,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    // ... other fields
+  });
+
+  const onSubmit = handleSubmit(async (data) => {
+    const result = await updateContact({
+      requestPayload: {
+        input: {
+          id: contact.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          // ... other fields
+        },
+      },
+      selfHandleError: true,
+    });
+    
+    if (result.data?.contact) {
+      await client({ requestPayload: { id: contact.clientId } });
+      showToast({
+        type: "success",
+        title: __("Success update contact"),
+      });
+      pull();
+    }
+  });
+
+  return (
+    <View>
+      {/* Form fields using InputFormControl with control */}
+      <Button
+        variant="primary"
+        onClick={onSubmit}
+        loading={loading}
+        children={__("Update Contact")}
+      />
+    </View>
+  );
+}
+```
+
+**Example 3: Deleting a Service Profile**
+
+```typescript
+import { Button } from "@/components/ui";
+import { useDeleteClientServiceProfile } from "@/store/profile/serviceProfileCRUDStores";
+import { useRoute } from "@/components/shared/router";
+import { showToast } from "@/components/ui/toast/show-toast";
+import { __ } from "@/lib/i18n";
+
+function DeleteServiceProfileButton({ profileId }: { profileId: string }) {
+  const { pull } = useRoute();
+  const { fetch: deleteProfile, loading } = useDeleteClientServiceProfile();
+
+  const handleDelete = async () => {
+    const result = await deleteProfile({
+      requestPayload: { id: profileId },
+      selfHandleError: true,
+    });
+    
+    if (result.data?.result) {
+      showToast({
+        type: "success",
+        title: __("Profile deleted"),
+      });
+      pull();
+    }
+  };
+
+  return (
+    <Button
+      variant="danger"
+      onClick={handleDelete}
+      loading={loading}
+      children={__("Delete Profile")}
+    />
+  );
+}
+```
+
+**Example 4: Error Handling**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useCreateAddressStore } from "@/store/profile/addressCRUDStores";
+import { useAddressForm } from "@/store/auth/forms/useAddressForm";
+import { showToast } from "@/components/ui/toast/show-toast";
+import { getErrorMessage } from "@/lib/helpers/string";
+import { __ } from "@/lib/i18n";
+
+function AddAddressForm() {
+  const { fetch: createAddress, loading, error } = useCreateAddressStore();
+  const { control, handleSubmit } = useAddressForm();
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      const result = await createAddress({
+        requestPayload: {
+          input: { ...data },
+        },
+        selfHandleError: true,
+      });
+      
+      if (result.error) {
+        showToast({
+          type: "error",
+          title: getErrorMessage(result.error, __("Error creating address")),
+        });
+      }
+    } catch (err) {
+      showToast({
+        type: "error",
+        title: getErrorMessage(err, __("Unexpected error")),
+      });
+    }
+  });
+
+  return (
+    <View>
+      {error && (
+        <Typography variant="body-sm" color="destructive">
+          {error.message}
+        </Typography>
+      )}
+      {/* Form fields */}
+      <Button
+        variant="primary"
+        onClick={onSubmit}
+        loading={loading}
+        children={__("Create Address")}
+      />
+    </View>
+  );
+}
+```
+
 ## Migration Summary
 
 **Code Reduction**:

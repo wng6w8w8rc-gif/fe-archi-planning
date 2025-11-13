@@ -155,6 +155,85 @@ export const usePast30DayVisitsStore = createVisitListStore({
 });
 ```
 
+### Usage Examples
+
+**Example 1: Using the Store in a Component**
+
+```typescript
+import { useEffect } from "react";
+import { View, Button, Skeleton } from "@/components/ui";
+import { useNext7DayVisitsStore } from "@/store/visits/visitListStores";
+import { useShallow } from "zustand/react/shallow";
+import { useAuthState } from "@/store/auth";
+import { formatDate } from "@/lib/helpers/date";
+import { addDays } from "date-fns";
+import { VisitCard } from "@/components/shared/visits/visit-card";
+import { __ } from "@/lib/i18n";
+
+function Next7DaysVisits() {
+  const user = useAuthState((state) => state.data.userInfo);
+  const { data: visits, loading, fetch, fetchMore, pagination } = 
+    useNext7DayVisitsStore(useShallow((state) => state));
+
+  useEffect(() => {
+    if (user.id) {
+      fetch({
+        requestPayload: {
+          filters: {
+            clientId: [user.id],
+            from: formatDate(new Date()),
+            to: formatDate(addDays(new Date(), 6)),
+          },
+        },
+      });
+    }
+  }, [user.id, fetch]);
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[200px] w-full" />
+      </>
+    );
+  }
+
+  return (
+    <View className="flex flex-col gap-4">
+      {visits.map((visit) => (
+        <VisitCard key={visit.id} visitData={visit} />
+      ))}
+      {pagination.total > visits.length && (
+        <Button
+          variant="tertiary"
+          onClick={() => fetchMore({
+            requestPayload: {
+              filters: {
+                clientId: [user.id],
+                from: formatDate(new Date()),
+                to: formatDate(addDays(new Date(), 6)),
+              },
+            },
+          })}
+          children={__("Load More")}
+        />
+      )}
+    </View>
+  );
+}
+```
+
+**Example 2: Adding a New Visit List Type**
+
+```typescript
+// store/visits/visitListStores.ts
+export const useCustomVisitsStore = createVisitListStore({
+  listType: "custom",
+  sortOrder: "asc",
+  fetchPolicy: "cache-first", // Optional override
+});
+```
+
 ## Migration Summary
 
 **Code Reduction**:

@@ -514,6 +514,134 @@ export function useNotificationsInit() {
 }
 ```
 
+### Usage Examples
+
+**Example 1: Using Notifications Hook in Components**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useNotifications } from "@/components/hooks/use-notifications";
+import { __ } from "@/lib/i18n";
+
+function NotificationSettings() {
+  const { enabled, permissionStatus, turnOn, turnOff } = useNotifications();
+
+  return (
+    <View className="flex flex-col gap-4">
+      <Typography variant="h2">{__("Notification Settings")}</Typography>
+      <Typography variant="body-md">
+        {__("Status")}: {permissionStatus}
+      </Typography>
+      <Typography variant="body-md">
+        {__("Enabled")}: {enabled ? __("Yes") : __("No")}
+      </Typography>
+      
+      {!enabled ? (
+        <Button
+          variant="primary"
+          onClick={turnOn}
+          children={__("Enable Notifications")}
+        />
+      ) : (
+        <Button
+          variant="tertiary"
+          onClick={turnOff}
+          children={__("Disable Notifications")}
+        />
+      )}
+    </View>
+  );
+}
+```
+
+**Example 2: Checking Notification Permission**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useNotifications } from "@/components/hooks/use-notifications";
+import * as Notifications from "expo-notifications";
+import { __ } from "@/lib/i18n";
+
+function NotificationButton() {
+  const { enabled, permissionStatus } = useNotifications();
+
+  if (permissionStatus === Notifications.PermissionStatus.DENIED) {
+    return (
+      <Typography variant="body-sm" color="muted-foreground">
+        {__("Notifications are disabled. Please enable in settings.")}
+      </Typography>
+    );
+  }
+
+  return (
+    <Button
+      variant="primary"
+      disabled={!enabled}
+      children={enabled ? __("Send Notification") : __("Enable Notifications First")}
+    />
+  );
+}
+```
+
+**Example 3: Accessing Latest Notification**
+
+```typescript
+import { View } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useNotifications } from "@/components/hooks/use-notifications";
+
+function NotificationBadge() {
+  const { latestNotification } = useNotifications();
+
+  if (!latestNotification) return null;
+
+  return (
+    <View className="p-4 border rounded-lg">
+      <Typography variant="body-md">
+        {latestNotification.request.content.title}
+      </Typography>
+      <Typography variant="body-sm" color="muted-foreground">
+        {latestNotification.request.content.body}
+      </Typography>
+    </View>
+  );
+}
+```
+
+**Example 4: Direct Store Access**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useNotificationsStore } from "@/store/notifications/notificationsStore";
+import { __ } from "@/lib/i18n";
+
+function CustomNotificationComponent() {
+  const expoPushToken = useNotificationsStore((state) => state.data.expoPushToken);
+  const checkPermission = useNotificationsStore((state) => state.checkPermissionStatus);
+
+  const handleCheck = async () => {
+    const status = await checkPermission();
+    console.log("Permission status:", status);
+  };
+
+  return (
+    <View className="flex flex-col gap-2">
+      <Typography variant="body-md">
+        {__("Push Token")}: {expoPushToken || __("Not available")}
+      </Typography>
+      <Button
+        variant="tertiary"
+        onClick={handleCheck}
+        children={__("Check Permission")}
+      />
+    </View>
+  );
+}
+```
+
 **Updated \_layout.tsx**:
 
 ```typescript:luce-fe/src/app/_layout.tsx

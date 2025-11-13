@@ -267,3 +267,117 @@ function RootLayout() {
   );
 }
 ```
+
+### Usage Examples
+
+**Example 1: Checking App Version in Components**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useAppVersionStore } from "@/store/app-version/appVersionStore";
+import { __ } from "@/lib/i18n";
+
+function AppVersionInfo() {
+  const buildVersion = useAppVersionStore((state) => state.data.build_version);
+  const appOutDated = useAppVersionStore((state) => state.data.appOutDated);
+
+  return (
+    <View className="flex flex-col gap-4">
+      <Typography variant="body-md">
+        {__("Build Version")}: {buildVersion}
+      </Typography>
+      {appOutDated && (
+        <View className="p-4 border border-warning rounded-lg">
+          <Typography variant="body-md" color="warning">
+            {__("Your app is outdated. Please update to the latest version.")}
+          </Typography>
+          <Button
+            variant="primary"
+            onClick={() => {
+              // Open app store
+            }}
+            children={__("Update Now")}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+```
+
+**Example 2: Showing Update Prompt**
+
+```typescript
+import { useEffect } from "react";
+import { useAppVersionStore } from "@/store/app-version/appVersionStore";
+import { useGlobalModalStore } from "@/store/modal/globalModalStore";
+import { UpdateRequiredModal } from "@/components/shared/update-required-modal";
+
+function AppVersionChecker() {
+  const appOutDated = useAppVersionStore((state) => state.data.appOutDated);
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  useEffect(() => {
+    if (appOutDated) {
+      openModal(
+        <UpdateRequiredModal />,
+        { type: "dialog" }
+      );
+    }
+  }, [appOutDated, openModal]);
+
+  return null;
+}
+```
+
+**Example 3: Accessing Version Data**
+
+```typescript
+import { View } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useAppVersionStore } from "@/store/app-version/appVersionStore";
+import { __ } from "@/lib/i18n";
+
+function AboutPage() {
+  const { build_version, appOutDated } = useAppVersionStore((state) => state.data);
+
+  return (
+    <View className="flex flex-col gap-4">
+      <Typography variant="h1">{__("About")}</Typography>
+      <Typography variant="body-md">
+        {__("Version")}: {build_version}
+      </Typography>
+      {appOutDated && (
+        <Typography variant="body-sm" color="warning">
+          {__("Update available")}
+        </Typography>
+      )}
+    </View>
+  );
+}
+```
+
+## Migration Summary
+
+**Code Reduction**:
+
+- **Before**: Provider component with React Context (~100 lines)
+- **After**: Zustand store (~80 lines) + hook (~50 lines) = ~130 lines
+- **Net change**: Slight increase but better architecture
+
+**Benefits**:
+
+- ✅ Consistent state management pattern
+- ✅ No provider nesting
+- ✅ Better performance with Zustand subscriptions
+- ✅ Reusable hooks
+- ✅ Easier testing
+
+**Migration Strategy**:
+
+1. Create `useAppVersionStore` Zustand store
+2. Create `useAppVersionCheck` hook for initialization
+3. Update `_layout.tsx` to use hook instead of provider
+4. Update all components using AppVersionContext
+5. Remove `AppVersionProvider` component

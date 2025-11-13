@@ -404,6 +404,162 @@ export function VisitDetailContainer() {
 }
 ```
 
+### Usage Examples
+
+**Example 1: Opening a Simple Dialog Modal**
+
+```typescript
+import { Button } from "@/components/ui";
+import { useGlobalModalStore } from "@/store/modal/globalModalStore";
+import { LoginModal } from "@/containers/auth/login";
+import { __ } from "@/lib/i18n";
+
+function LoginButton() {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const handleLogin = () => {
+    openModal(
+      <LoginModal />,
+      { type: "dialog" }
+    );
+  };
+
+  return (
+    <Button
+      variant="primary"
+      onClick={handleLogin}
+      children={__("Login")}
+    />
+  );
+}
+```
+
+**Example 2: Opening a Bottom Drawer with Props**
+
+```typescript
+import { Button } from "@/components/ui";
+import { useGlobalModalStore } from "@/store/modal/globalModalStore";
+import { VisitDetailModal } from "@/containers/visits/visit-detail";
+import { __ } from "@/lib/i18n";
+
+function VisitCard({ visitId }: { visitId: string }) {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const handleViewDetail = () => {
+    openModal(
+      <VisitDetailModal visitId={visitId} />,
+      { 
+        type: "bottom-drawer",
+        animation: "slide-up"
+      }
+    );
+  };
+
+  return (
+    <Button
+      variant="tertiary"
+      onClick={handleViewDetail}
+      children={__("View Details")}
+    />
+  );
+}
+```
+
+**Example 3: Opening a Fullscreen Modal**
+
+```typescript
+import { Button } from "@/components/ui";
+import { useGlobalModalStore } from "@/store/modal/globalModalStore";
+import { BookingFlowModal } from "@/containers/booking";
+import { __ } from "@/lib/i18n";
+
+function BookServiceButton() {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const handleBook = () => {
+    openModal(
+      <BookingFlowModal serviceId="123" />,
+      { 
+        type: "fullscreen",
+        animation: "fade"
+      }
+    );
+  };
+
+  return (
+    <Button
+      variant="primary"
+      onClick={handleBook}
+      children={__("Book Now")}
+    />
+  );
+}
+```
+
+**Example 4: Closing a Modal**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useGlobalModalStore } from "@/store/modal/globalModalStore";
+import { __ } from "@/lib/i18n";
+
+function ModalContent() {
+  const closeModal = useGlobalModalStore((state) => state.closeModal);
+
+  const handleClose = () => {
+    closeModal(); // Closes the last opened modal
+  };
+
+  return (
+    <View>
+      <Typography variant="h1">{__("Modal Content")}</Typography>
+      <Button
+        variant="tertiary"
+        onClick={handleClose}
+        children={__("Close")}
+      />
+    </View>
+  );
+}
+```
+
+**Example 5: Opening Multiple Modals (Stacking)**
+
+```typescript
+import { Button } from "@/components/ui";
+import { useGlobalModalStore } from "@/store/modal/globalModalStore";
+import { __ } from "@/lib/i18n";
+
+function ParentComponent() {
+  const openModal = useGlobalModalStore((state) => state.openModal);
+
+  const handleOpenNested = () => {
+    // First modal
+    openModal(
+      <FirstModal />,
+      { type: "dialog" }
+    );
+    
+    // Second modal (stacked on top)
+    setTimeout(() => {
+      openModal(
+        <SecondModal />,
+        { type: "dialog" }
+      );
+    }, 100);
+  };
+
+  return (
+    <Button
+      variant="primary"
+      onClick={handleOpenNested}
+      children={__("Open Nested Modals")}
+    />
+  );
+}
+```
+
 ## Migration Summary
 
 **Code Reduction**:

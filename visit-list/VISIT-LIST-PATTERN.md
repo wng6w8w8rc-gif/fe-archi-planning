@@ -558,3 +558,133 @@ export function VisitList({ type }: { type: VisitListType }) {
   );
 }
 ```
+
+### Usage Examples
+
+**Example 1: Using the VisitList Component**
+
+```typescript
+import { View } from "@/components/ui";
+import { VisitList } from "@/containers/visits/visit-list";
+
+function VisitsPage() {
+  return (
+    <View className="flex flex-col gap-6">
+      <VisitList type="next7days" />
+      <VisitList type="next30days" />
+      <VisitList type="unscheduled" />
+      <VisitList type="past30days" />
+    </View>
+  );
+}
+```
+
+**Example 2: Using the Hooks Directly**
+
+```typescript
+import { View, Button, Skeleton } from "@/components/ui";
+import { useVisitList } from "@/components/hooks/use-visit";
+import { useVisitListActions } from "@/components/hooks/use-visit/use-visit-list-actions";
+import { VisitCard } from "@/components/shared/visits/visit-card";
+import { __ } from "@/lib/i18n";
+
+function CustomVisitList() {
+  const { visits, loading, shouldShowLoadMore, onLoadMore } = 
+    useVisitList("next7days");
+  
+  const {
+    handleViewDetail,
+    handleRateVisit,
+    handleRebook,
+    handleSetSchedule,
+    handleReportVisit,
+  } = useVisitListActions();
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[200px] w-full" />
+      </>
+    );
+  }
+
+  return (
+    <View className="flex flex-col gap-4">
+      {visits.map((visit) => (
+        <VisitCard
+          key={visit.id}
+          visitData={visit}
+          handleViewDetail={handleViewDetail}
+          handleRateVisit={handleRateVisit}
+          handleRebook={handleRebook}
+          handleSetSchedule={handleSetSchedule}
+          handleReportVisit={handleReportVisit}
+        />
+      ))}
+      {shouldShowLoadMore && (
+        <Button
+          variant="tertiary"
+          onClick={onLoadMore}
+          loading={loading}
+          children={__("Load More")}
+        />
+      )}
+    </View>
+  );
+}
+```
+
+**Example 3: Using Actions in a Custom Component**
+
+```typescript
+import { View, Button } from "@/components/ui";
+import { Typography } from "@/components/shared/typography";
+import { useVisitListActions } from "@/components/hooks/use-visit/use-visit-list-actions";
+import type { VisitData } from "@/components/shared/visits/visit-card";
+import { __ } from "@/lib/i18n";
+
+function VisitCard({ visit }: { visit: VisitData }) {
+  const { handleViewDetail, handleReportVisit } = useVisitListActions();
+
+  return (
+    <View className="p-4 border rounded-lg">
+      <Typography variant="h3">{visit.serviceName}</Typography>
+      <Button
+        variant="primary"
+        onClick={() => handleViewDetail(visit.id)}
+        children={__("View Details")}
+      />
+      <Button
+        variant="tertiary"
+        onClick={() => handleReportVisit(visit.id)}
+        children={__("Report Issue")}
+      />
+    </View>
+  );
+}
+```
+
+## Migration Summary
+
+**Code Reduction**:
+
+- **Before**: 274 lines with all logic mixed together
+- **After**: ~90 lines component + ~80 lines hooks = ~170 lines total
+- **Net reduction**: ~104 lines + better organization
+
+**Benefits**:
+
+- ✅ Single responsibility per file
+- ✅ Reusable hooks for visit-related components
+- ✅ Easier testing with isolated business logic
+- ✅ Consistent pattern with other list components
+- ✅ Better maintainability
+
+**Migration Strategy**:
+
+1. Create `useVisitList` hook for data fetching
+2. Create `useVisitListActions` hook for actions
+3. Extract configuration to `lib.ts`
+4. Update `VisitList` component to use hooks
+5. Test visit list functionality

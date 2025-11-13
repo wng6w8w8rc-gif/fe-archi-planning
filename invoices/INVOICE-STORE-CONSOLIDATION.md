@@ -152,6 +152,72 @@ export const useUnpaidInvoicesStore = createInvoiceListStore({
 });
 ```
 
+### Usage Examples
+
+**Example 1: Using the Store in a Component**
+
+```typescript
+import { View, Button, Skeleton } from "@/components/ui";
+import { usePaidInvoicesStore } from "@/store/invoices/invoiceListStores";
+import { useShallow } from "zustand/react/shallow";
+import { useAuthState } from "@/store/auth";
+import { InvoiceFilterStatusEnum } from "@/types/invoice";
+import { InvoiceCard } from "@/components/shared/invoices/invoice-card";
+import { getInvoiceFilters } from "@/containers/profile/invoices/lib";
+import { __ } from "@/lib/i18n";
+
+function PaidInvoices() {
+  const user = useAuthState((state) => state.data.userInfo);
+  const { data: invoices, loading, fetch, fetchMore } = 
+    usePaidInvoicesStore(useShallow((state) => state));
+
+  useEffect(() => {
+    if (user.id) {
+      fetch({
+        requestPayload: {
+          filters: getInvoiceFilters(user.id, InvoiceFilterStatusEnum.PAID),
+        },
+      });
+    }
+  }, [user.id, fetch]);
+
+  if (loading) {
+    return (
+      <>
+        <Skeleton className="h-[120px] w-full" />
+      </>
+    );
+  }
+
+  return (
+    <View className="flex flex-col gap-4">
+      {invoices.map((invoice) => (
+        <InvoiceCard key={invoice.id} {...invoice} />
+      ))}
+      <Button
+        variant="tertiary"
+        onClick={() => fetchMore({
+          requestPayload: {
+            filters: getInvoiceFilters(user.id, InvoiceFilterStatusEnum.PAID),
+          },
+        })}
+        loading={loading}
+        children={__("Load More")}
+      />
+    </View>
+  );
+}
+```
+
+**Example 2: Adding a New Invoice Filter Type**
+
+```typescript
+// store/invoices/invoiceListStores.ts
+export const useOverdueInvoicesStore = createInvoiceListStore({
+  status: InvoiceFilterStatusEnum.OVERDUE,
+});
+```
+
 ## Migration Summary
 
 **Code Reduction**:
