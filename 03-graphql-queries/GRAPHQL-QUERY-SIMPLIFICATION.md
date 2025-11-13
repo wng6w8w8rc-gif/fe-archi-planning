@@ -433,8 +433,250 @@ function PaidInvoicesList() {
 
 **Considerations**:
 
-- **Pagination**: Uses Apollo Client's `fetchMore` with offset-based pagination. For auto-merge, configure type policies in Apollo Client cache (see `createFilteredEntityTypePolicy` in `lib/graphql/cache.ts`)
+- **Pagination**: Uses Apollo Client's `fetchMore` with offset-based pagination
 - **Error handling**: Done via Apollo Client error link (already configured)
 - **Transform functions**: Moved to hooks using `useMemo` for performance
 - **`onFetchSuccess` callbacks**: Use `onCompleted` in mutations or `useEffect` in queries
 - **Pagination state**: Managed directly in the hook (offset, hasMore) - simpler than Zustand store pagination state
+
+### Examples for Considerations
+
+**1. Pagination with fetchMore**
+
+Uses Apollo Client's `fetchMore` for offset-based pagination:
+
+```typescript:luce-fe/src/gqlhooks/invoices/usePaidInvoices.ts
+export function usePaidInvoices(filters: InvoicesByFiltersQueryVariables["filters"]) {
+  const { data, loading, error, fetchMore } = useQuery(InvoicesByFiltersDocument, {
+    variables: {
+      filters: {
+        ...filters,
+        offset: 0,
+        limit: 20,
+      },
+    },
+  });
+
+  const invoices = useMemo(() => {
+    return data?.invoicesByFilters.invoices.map(mapToInvoiceCard) ?? [];
+  }, [data]);
+
+  const total = data?.invoicesByFilters.count ?? 0;
+  const hasMore = invoices.length < total;
+
+  const loadMore = () => {
+    if (!hasMore || loading) return;
+
+    fetchMore({
+      variables: {
+        filters: {
+          ...filters,
+          offset: invoices.length,
+          limit: 20,
+        },
+      },
+    });
+  };
+
+  return { invoices, total, loading, error, loadMore, hasMore };
+}
+```
+
+**2. Error Handling via Apollo Client Error Link**
+
+Error handling is centralized in Apollo Client error link (already configured):
+
+```typescript:luce-fe/src/lib/graphql/apollo.ts
+const onErrorCallback: ErrorLink.ErrorHandler = ({
+  graphQLErrors,
+  networkError,
+}) => {
+  // Network errors (503, 504, etc.) are handled here
+  // GraphQL errors are logged here
+  // Toast notifications can be shown here if needed
+};
+
+const errorLink = onError(onErrorCallback);
+```
+
+In components, errors are available from the hook:
+
+```typescript
+function MyComponent() {
+  const { data, loading, error } = useQuery(MyDocument, { variables });
+
+  if (error) {
+    // Error is already logged by error link
+    // Show user-friendly error message
+    return <ErrorView message={error.message} />;
+  }
+
+  // ... rest of component
+}
+```
+
+**3. Transform Functions with useMemo**
+
+Transform functions are moved to hooks using `useMemo` for performance:
+
+```typescript:luce-fe/src/gqlhooks/visits/useVisit.ts
+import { useQuery } from "@apollo/client";
+import { VisitDocument, type VisitQueryVariables } from "@/__generated__/graphql";
+import { useFragment } from "@/__generated__";
+import { VisitClientFragmentFragmentDoc } from "@/__generated__/graphql";
+import type { VisitDetailData } from "@/components/shared/visits/visit-detail";
+import { mapToVisitDetailData } from "@/components/shared/visits/visit-detail";
+import { useMemo } from "react";
+
+export function useVisit(variables: VisitQueryVariables) {
+  const { data, loading, error } = useQuery(VisitDocument, { variables });
+
+  // Extract fragment data first (useFragment is a hook, must be at top level)
+  const fragmentData = data?.visit
+    ? useFragment(VisitClientFragmentFragmentDoc, data.visit)
+    : null;
+
+  // Transform function wrapped in useMemo for performance
+  const visit = useMemo(() => {
+    if (!fragmentData) return null;
+    return mapToVisitDetailData(fragmentData);
+  }, [fragmentData]);
+
+  return { data: visit, loading, error };
+}
+```
+
+**Alternative: Transform in useMemo without fragment** (if fragment is not needed):
+
+```typescript:luce-fe/src/gqlhooks/invoices/usePaidInvoices.ts
+export function usePaidInvoices(filters: InvoicesByFiltersQueryVariables["filters"]) {
+  const { data, loading, error, fetchMore } = useQuery(InvoicesByFiltersDocument, {
+    variables: {
+      filters: {
+        ...filters,
+        offset: 0,
+        limit: 20,
+      },
+    },
+  });
+
+  // Transform function with useMemo - no hooks inside
+  const invoices = useMemo(() => {
+    return data?.invoicesByFilters.invoices.map(mapToInvoiceCard) ?? [];
+  }, [data]);
+
+  return { invoices, loading, error, fetchMore };
+}
+```
+
+**4. onFetchSuccess Callbacks**
+
+**For Mutations** - Use `onCompleted`:
+
+```typescript:luce-fe/src/gqlhooks/auth/useClientConfirmPhoneNumber.ts
+import { useMutation } from "@apollo/client";
+import { ClientConfirmPhoneNumberDocument } from "@/__generated__/graphql";
+import { storage } from "@/lib/storage";
+
+export function useClientConfirmPhoneNumber() {
+  const [mutate, { loading, error }] = useMutation(ClientConfirmPhoneNumberDocument, {
+    // onFetchSuccess equivalent - runs after successful mutation
+    onCompleted: (data) => {
+      if (data.clientConfirmPhoneNumber?.result) {
+        storage.setItem("ONBOARDING", "true").catch(console.error);
+      }
+    },
+  });
+  return { mutate, loading, error };
+}
+```
+
+**For Queries** - Use `useEffect`:
+
+```typescript:luce-fe/src/gqlhooks/visits/useVisit.ts
+import { useEffect } from "react";
+import { useQuery } from "@apollo/client";
+import { VisitDocument, type VisitQueryVariables } from "@/__generated__/graphql";
+
+export function useVisit(variables: VisitQueryVariables) {
+  const { data, loading, error } = useQuery(VisitDocument, { variables });
+
+  // onFetchSuccess equivalent - runs when data changes
+  useEffect(() => {
+    if (data?.visit && !loading) {
+      // Side effect after successful fetch
+      // e.g., update analytics, update other stores, etc.
+      console.log("Visit loaded:", data.visit.id);
+    }
+  }, [data, loading]);
+
+  return { data, loading, error };
+}
+```
+
+**5. Pagination State Management**
+
+Pagination state is managed directly in the hook - simpler than Zustand store:
+
+```typescript:luce-fe/src/gqlhooks/invoices/usePaidInvoices.ts
+import { useQuery } from "@apollo/client";
+import { InvoicesByFiltersDocument, type InvoicesByFiltersQueryVariables } from "@/__generated__/graphql";
+import { useMemo } from "react";
+
+export function usePaidInvoices(filters: InvoicesByFiltersQueryVariables["filters"]) {
+  const { data, loading, error, fetchMore } = useQuery(InvoicesByFiltersDocument, {
+    variables: {
+      filters: {
+        ...filters,
+        offset: 0,
+        limit: 20,
+      },
+    },
+  });
+
+  const invoices = useMemo(() => {
+    return data?.invoicesByFilters.invoices.map(mapToInvoiceCard) ?? [];
+  }, [data]);
+
+  // Pagination state computed from data - no separate Zustand store needed
+  const total = data?.invoicesByFilters.count ?? 0;
+  const hasMore = invoices.length < total;
+  const currentOffset = invoices.length;
+
+  const loadMore = () => {
+    if (!hasMore || loading) return;
+
+    fetchMore({
+      variables: {
+        filters: {
+          ...filters,
+          offset: currentOffset, // Simple offset calculation
+          limit: 20,
+        },
+      },
+    });
+  };
+
+  return {
+    invoices,
+    total,
+    loading,
+    error,
+    loadMore,
+    hasMore, // Simple boolean - no complex pagination object
+    currentOffset, // Simple number - no pagination state object
+  };
+}
+```
+
+**Comparison with Zustand Store Pagination**:
+
+```typescript
+// Before: Complex Zustand pagination state
+const { data, pagination, fetchMore } = usePaidInvoicesStore();
+// pagination = { offset: 0, limit: 20, total: 0, enabled: true }
+
+// After: Simple computed values
+const { invoices, total, hasMore, loadMore } = usePaidInvoices(filters);
+// hasMore = invoices.length < total (simple boolean)
+```
