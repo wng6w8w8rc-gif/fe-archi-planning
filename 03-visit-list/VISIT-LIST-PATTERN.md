@@ -4,6 +4,8 @@
 
 This refactoring extracts responsibilities from the `VisitList` component into custom hooks and configuration files to improve separation of concerns, maintainability, and testability.
 
+**⚠️ Dependency**: This refactoring requires `VISIT-STORE-CONSOLIDATION.md` to be completed first, as it uses the consolidated store exports from `@/store/visits/visitListStores`.
+
 ### Files Affected
 
 **New Files:**
@@ -15,6 +17,7 @@ This refactoring extracts responsibilities from the `VisitList` component into c
 **Modified Files:**
 
 - `containers/visits/visit-list/index.tsx` - Simplified to use hooks
+- `containers/visits/visit-list/lib.ts` - Update imports to use consolidated stores
 
 ### Key Changes
 
@@ -51,10 +54,13 @@ import { formatDate } from "@/lib/helpers/date";
 import type { VisitData } from "@/components/shared/visits/visit-card";
 import type { RequestPaginatedFactoryType } from "@/lib/request-factory";
 import type { VisitListType } from "@/store/visits/visitList";
-import { useNext7DayVisitsStore } from "@/store/visits/next7dayVisits";
-import { useNext30DayVisitsStore } from "@/store/visits/next30dayVisits";
-import { useUnscheduledVisitsStore } from "@/store/visits/unscheduledVisits";
-import { usePast30DayVisitsStore } from "@/store/visits/past30dayVisits";
+// Updated: Import from consolidated store exports
+import {
+  useNext7DayVisitsStore,
+  useNext30DayVisitsStore,
+  useUnscheduledVisitsStore,
+  usePast30DayVisitsStore,
+} from "@/store/visits/visitListStores";
 import { __ } from "@/lib/i18n";
 
 export type VisitListOptions = {
@@ -140,6 +146,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useAuthState } from "@/store/auth";
 import type { VisitListType } from "@/store/visits/visitList";
 import type { VisitData } from "@/components/shared/visits/visit-card";
+// Note: listType uses consolidated stores from visitListStores
 import { listType } from "@/containers/visits/visit-list/lib";
 
 type UseVisitListReturn = {
@@ -171,7 +178,7 @@ export function useVisitList(type: VisitListType): UseVisitListReturn {
       const filters = initialFilters(user.id);
       getVisits({
         requestPayload: {
-          filters,
+          filters: initialFilters(user.id),
         },
       });
     }
@@ -181,9 +188,7 @@ export function useVisitList(type: VisitListType): UseVisitListReturn {
     if (user.id) {
       fetchMore({
         requestPayload: {
-          filters: {
-            ...initialFilters(user.id),
-          },
+          filters: initialFilters(user.id),
         },
       });
     }
@@ -307,6 +312,7 @@ import { addDays, addMonths, addYears, startOfYesterday } from "date-fns";
 import { formatDate } from "@/lib/helpers/date";
 import { useEffect, useCallback, useMemo } from "react";
 import { useAuthState } from "@/store/auth";
+// Before: Individual store imports
 import { useNext7DayVisitsStore } from "@/store/visits/next7dayVisits";
 import { useNext30DayVisitsStore } from "@/store/visits/next30dayVisits";
 import { useUnscheduledVisitsStore } from "@/store/visits/unscheduledVisits";
@@ -465,6 +471,7 @@ export function VisitList({ type }: { type: VisitListType }) {
 
 ```typescript:luce-fe/src/containers/visits/visit-list/index.tsx
 // AFTER - ~90 lines
+// Note: Store imports are now in lib.ts (from consolidated visitListStores)
 import type { VisitListType } from "@/store/visits/visitList";
 import { ListHeading } from "@/components/shared/list-header";
 import { Button, Skeleton, View } from "@/components/ui";
@@ -588,16 +595,10 @@ import { VisitCard } from "@/components/shared/visits/visit-card";
 import { __ } from "@/lib/i18n";
 
 function CustomVisitList() {
-  const { visits, loading, shouldShowLoadMore, onLoadMore } = 
-    useVisitList("next7days");
-  
-  const {
-    handleViewDetail,
-    handleRateVisit,
-    handleRebook,
-    handleSetSchedule,
-    handleReportVisit,
-  } = useVisitListActions();
+  const { visits, loading, shouldShowLoadMore, onLoadMore } = useVisitList("next7days");
+
+  const { handleViewDetail, handleRateVisit, handleRebook, handleSetSchedule, handleReportVisit } =
+    useVisitListActions();
 
   if (loading) {
     return (
@@ -622,12 +623,7 @@ function CustomVisitList() {
         />
       ))}
       {shouldShowLoadMore && (
-        <Button
-          variant="tertiary"
-          onClick={onLoadMore}
-          loading={loading}
-          children={__("Load More")}
-        />
+        <Button variant="tertiary" onClick={onLoadMore} loading={loading} children={__("Load More")} />
       )}
     </View>
   );
@@ -649,16 +645,8 @@ function VisitCard({ visit }: { visit: VisitData }) {
   return (
     <View className="p-4 border rounded-lg">
       <Typography variant="h3">{visit.serviceName}</Typography>
-      <Button
-        variant="primary"
-        onClick={() => handleViewDetail(visit.id)}
-        children={__("View Details")}
-      />
-      <Button
-        variant="tertiary"
-        onClick={() => handleReportVisit(visit.id)}
-        children={__("Report Issue")}
-      />
+      <Button variant="primary" onClick={() => handleViewDetail(visit.id)} children={__("View Details")} />
+      <Button variant="tertiary" onClick={() => handleReportVisit(visit.id)} children={__("Report Issue")} />
     </View>
   );
 }
@@ -672,6 +660,8 @@ function VisitCard({ visit }: { visit: VisitData }) {
 - **After**: ~90 lines component + ~80 lines hooks = ~170 lines total
 - **Net reduction**: ~104 lines + better organization
 
+**Note**: This refactoring builds on top of `VISIT-STORE-CONSOLIDATION.md`, which consolidates the 4 individual store files into a single factory. The `lib.ts` configuration file now imports from the consolidated `@/store/visits/visitListStores` instead of individual store files.
+
 **Benefits**:
 
 - ✅ Single responsibility per file
@@ -681,8 +671,10 @@ function VisitCard({ visit }: { visit: VisitData }) {
 
 **Migration Strategy**:
 
-1. Create `useVisitList` hook for data fetching
-2. Create `useVisitListActions` hook for actions
-3. Extract configuration to `lib.ts`
-4. Update `VisitList` component to use hooks
-5. Test visit list functionality
+1. **Prerequisite**: Complete `VISIT-STORE-CONSOLIDATION.md` first
+   - Ensure consolidated stores are available at `@/store/visits/visitListStores`
+2. Extract configuration to `lib.ts` and update imports to use consolidated stores
+3. Create `useVisitList` hook for data fetching
+4. Create `useVisitListActions` hook for actions
+5. Update `VisitList` component to use hooks
+6. Test visit list functionality
