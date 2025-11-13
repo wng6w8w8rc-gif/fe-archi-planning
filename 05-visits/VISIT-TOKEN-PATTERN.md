@@ -8,8 +8,7 @@ This refactoring consolidates the duplicate visit operation stores that handle b
 
 **New Files:**
 
-- `store/visits/createVisitOperationStore.ts` - Factory function (Option 1)
-- OR unified store files if using Option 2 or 3
+- `store/visits/visitStore.ts` - Unified store with factory function
 
 **Removed Files (if using factory approach):**
 
@@ -74,19 +73,41 @@ export const useVisitStore = createRequestFactory<
 **Rate Visit** - 2 separate stores
 
 ```typescript:luce-fe/src/store/visits/useRateVisit.ts
+import { createRequestFactory } from "@/lib/request-factory";
+import {
+  RateVisitDocument,
+  type RateVisitMutation,
+  type RateVisitMutationVariables,
+} from "@/__generated__/graphql";
+
 export const useRateVisitStore = createRequestFactory<
   RateVisitMutation,
-  Response,
+  RateVisitMutation,
   RateVisitMutationVariables
 >({
   method: "mutation",
   graphqlDocument: RateVisitDocument,
-  // ... configuration
+  hasUpload: true,
 });
 ```
 
 ```typescript:luce-fe/src/store/visits/useRateVisitWithToken.ts
-// Identical pattern but uses RateVisitWithTokenDocument
+import { createRequestFactory } from "@/lib/request-factory";
+import {
+  RateVisitWithTokenDocument,
+  type RateVisitWithTokenMutation,
+  type RateVisitWithTokenMutationVariables,
+} from "@/__generated__/graphql";
+
+export const useRateVisitWithTokenStore = createRequestFactory<
+  RateVisitWithTokenMutation,
+  RateVisitWithTokenMutation,
+  RateVisitWithTokenMutationVariables
+>({
+  method: "mutation",
+  graphqlDocument: RateVisitWithTokenDocument,
+  hasUpload: true,
+});
 ```
 
 **Reschedule Visit** - 2 separate stores
@@ -94,98 +115,63 @@ export const useRateVisitStore = createRequestFactory<
 
 ### After: Unified Store Pattern
 
-**Option 1: Factory with Auth Type**
-
-```typescript:luce-fe/src/store/visits/createVisitOperationStore.ts
-import { createRequestFactory } from "@/lib/request-factory";
-
-type VisitAuthType = "auth" | "token";
-
-type VisitOperationConfig<
-  TQuery,
-  TResponse,
-  TVariables,
-> = {
-  authType: VisitAuthType;
-  authDocument: any;
-  tokenDocument: any;
-  transformFunction?: (res: TQuery) => TResponse;
-  onFetchSuccess?: (data: TResponse) => void;
-};
-
-export function createVisitOperationStore<
-  TQuery,
-  TResponse,
-  TVariables,
->(config: VisitOperationConfig<TQuery, TResponse, TVariables>) {
-  const document = config.authType === "auth"
-    ? config.authDocument
-    : config.tokenDocument;
-
-  return createRequestFactory<TQuery, TResponse, TVariables>({
-    method: "query", // or "mutation" based on operation
-    graphqlDocument: document,
-    transformFunction: config.transformFunction,
-    onFetchSuccess: config.onFetchSuccess,
-  });
-}
-```
-
-**Option 2: Unified Store with Runtime Selection (Recommended)**
-
 ```typescript:luce-fe/src/store/visits/visitStore.ts
+import { useFragment } from "@/__generated__";
 import { createRequestFactory } from "@/lib/request-factory";
 import {
   VisitDocument,
-  VisitTokenDocument,
+  VisitByClientWithTokenDocument,
+  VisitClientFragmentFragmentDoc,
   type VisitQuery,
   type VisitQueryVariables,
+  type VisitByClientWithTokenQuery,
+  type VisitByClientWithTokenQueryVariables,
 } from "@/__generated__/graphql";
+import type { VisitDetailData } from "@/components/shared/visits/visit-detail";
+import { mapToVisitDetailData } from "@/components/shared/visits/visit-detail";
 
 type VisitStoreConfig = {
   useToken?: boolean;
 };
 
 export function createVisitStore(config: VisitStoreConfig = {}) {
-  const document = config.useToken ? VisitTokenDocument : VisitDocument;
+  // Conditional document selection: token or auth
+  const document = config.useToken
+    ? VisitByClientWithTokenDocument
+    : VisitDocument;
 
   return createRequestFactory<
-    VisitQuery,
+    VisitByClientWithTokenQuery | VisitQuery,
     VisitDetailData,
-    VisitQueryVariables
+    VisitByClientWithTokenQueryVariables | VisitQueryVariables
   >({
     method: "query",
     graphqlDocument: document,
-    // ... rest of configuration
+    transformFunction(data: any, request?: any) {
+      if (config.useToken) {
+        // Token-based transform: uses visitByClientWithToken and passes token
+        if (!data.visitByClientWithToken) {
+          throw new Error("No visit found");
+        }
+        const visit = useFragment(
+          VisitClientFragmentFragmentDoc,
+          data.visitByClientWithToken,
+        );
+        return mapToVisitDetailData(visit, request?.token);
+      }
+
+      // Auth-based transform: uses visit
+      const visit = useFragment(VisitClientFragmentFragmentDoc, data.visit);
+      return mapToVisitDetailData(visit);
+    },
   });
 }
 
 // Export both variants for backward compatibility
+// Auth-based store (useToken: false)
 export const useVisitStore = createVisitStore({ useToken: false });
+// Token-based store (useToken: true)
 export const useVisitTokenStore = createVisitStore({ useToken: true });
-```
-
-**Option 3: Single Store with Dynamic Document (Simplest)**
-
-```typescript:luce-fe/src/store/visits/visitStore.ts
-import { createRequestFactory } from "@/lib/request-factory";
-import {
-  VisitDocument,
-  VisitTokenDocument,
-  type VisitQuery,
-  type VisitQueryVariables,
-} from "@/__generated__/graphql";
-
-type VisitStoreState = {
-  useToken: boolean;
-  setUseToken: (useToken: boolean) => void;
-};
-
-export const useVisitStore = create<VisitStoreState & RequestStore<...>>((set, get) => ({
-  useToken: false,
-  setUseToken: (useToken) => set({ useToken }),
-  // ... store implementation that uses get().useToken to select document
-}));
 ```
 
 **Updated Usage**
@@ -195,29 +181,32 @@ export const useVisitStore = create<VisitStoreState & RequestStore<...>>((set, g
 const { data } = useVisitStore();
 const { data: tokenData } = useVisitTokenStore();
 
-// After (Option 2)
-const { data } = useVisitStore(); // auth by default
-const { data: tokenData } = useVisitTokenStore(); // token variant
+// After
+// Auth-based usage
+const { data, loading, fetch } = useVisitStore();
+fetch({ requestPayload: { id: visitId } });
 
-// Or (Option 3)
-const { data, setUseToken } = useVisitStore();
-setUseToken(true); // switch to token mode
+// Token-based usage
+const { data: tokenData, loading: tokenLoading, fetch: tokenFetch } = useVisitTokenStore();
+tokenFetch({ requestPayload: { token } });
+// Both stores are created from the same factory function
 ```
 
 ### Usage Examples
 
-**Example 1: Using Auth-Based Visit Store**
+**Example 1: Using Visit Store (Both Auth and Token)**
 
 ```typescript
+import { useEffect } from "react";
 import { View, Skeleton } from "@/components/ui";
 import { Typography } from "@/components/shared/typography";
 import { useVisitStore } from "@/store/visits/visitStore";
+import { useVisitTokenStore } from "@/store/visits/visitStore";
 import { useShallow } from "zustand/react/shallow";
 
+// Auth-based usage
 function VisitDetail({ visitId }: { visitId: string }) {
-  const { data: visit, loading, fetch } = useVisitStore(
-    useShallow((state) => state)
-  );
+  const { data: visit, loading, fetch } = useVisitStore(useShallow((state) => state));
 
   useEffect(() => {
     fetch({
@@ -241,20 +230,10 @@ function VisitDetail({ visitId }: { visitId: string }) {
     </View>
   );
 }
-```
 
-**Example 2: Using Token-Based Visit Store**
-
-```typescript
-import { View, Skeleton } from "@/components/ui";
-import { Typography } from "@/components/shared/typography";
-import { useVisitTokenStore } from "@/store/visits/visitStore";
-import { useShallow } from "zustand/react/shallow";
-
+// Token-based usage
 function VisitDetailWithToken({ token }: { token: string }) {
-  const { data: visit, loading, fetch } = useVisitTokenStore(
-    useShallow((state) => state)
-  );
+  const { data: visit, loading, fetch } = useVisitTokenStore(useShallow((state) => state));
 
   useEffect(() => {
     fetch({
@@ -280,28 +259,32 @@ function VisitDetailWithToken({ token }: { token: string }) {
 }
 ```
 
-**Example 3: Unified Store with Runtime Selection (Option 3)**
+**Example 2: Unified Component Using Both Stores**
 
 ```typescript
+import { useEffect } from "react";
 import { View, Skeleton } from "@/components/ui";
 import { Typography } from "@/components/shared/typography";
 import { useVisitStore } from "@/store/visits/visitStore";
+import { useVisitTokenStore } from "@/store/visits/visitStore";
 import { useShallow } from "zustand/react/shallow";
 
 function VisitDetail({ visitId, token }: { visitId?: string; token?: string }) {
-  const { data: visit, loading, fetch, setUseToken } = useVisitStore(
-    useShallow((state) => state)
-  );
+  // Use appropriate store based on available parameter
+  const authStore = useVisitStore(useShallow((state) => state));
+  const tokenStore = useVisitTokenStore(useShallow((state) => state));
+
+  const { data: visit, loading, fetch } = token ? tokenStore : authStore;
 
   useEffect(() => {
     if (token) {
-      setUseToken(true);
+      // Token-based fetch
       fetch({ requestPayload: { token } });
     } else if (visitId) {
-      setUseToken(false);
+      // Auth-based fetch
       fetch({ requestPayload: { id: visitId } });
     }
-  }, [visitId, token, fetch, setUseToken]);
+  }, [visitId, token, fetch]);
 
   if (loading) {
     return (
@@ -315,12 +298,17 @@ function VisitDetail({ visitId, token }: { visitId?: string; token?: string }) {
   return (
     <View>
       <Typography variant="h1">{visit.serviceName}</Typography>
+      <Typography variant="body-md">Date: {visit.date}</Typography>
     </View>
   );
 }
+
+// Usage examples:
+// <VisitDetail visitId="123" /> // Uses auth store
+// <VisitDetail token="abc-token" /> // Uses token store
 ```
 
-**Example 4: Rating a Visit (Auth vs Token)**
+**Example 3: Rating a Visit (Both Auth and Token)**
 
 ```typescript
 import { View, Button } from "@/components/ui";
@@ -330,17 +318,20 @@ import { showToast } from "@/components/ui/toast/show-toast";
 import { __ } from "@/lib/i18n";
 
 function RateVisitButton({ visitId, token }: { visitId?: string; token?: string }) {
+  // After consolidation: Both stores are created from the same factory
   const rateVisit = useRateVisitStore((state) => state.fetch);
   const rateVisitWithToken = useRateVisitWithTokenStore((state) => state.fetch);
 
   const handleRate = async (rating: number) => {
     try {
       if (token) {
+        // Token-based rating
         await rateVisitWithToken({
           requestPayload: { token, rating },
           selfHandleError: true,
         });
       } else if (visitId) {
+        // Auth-based rating
         await rateVisit({
           requestPayload: { visitId, rating },
           selfHandleError: true,
@@ -358,16 +349,56 @@ function RateVisitButton({ visitId, token }: { visitId?: string; token?: string 
   return (
     <View className="flex flex-row gap-2">
       {[1, 2, 3, 4, 5].map((star) => (
-        <Button
-          key={star}
-          variant="tertiary"
-          onClick={() => handleRate(star)}
-          children="⭐"
-        />
+        <Button key={star} variant="tertiary" onClick={() => handleRate(star)} children="⭐" />
       ))}
     </View>
   );
 }
+
+// Usage examples:
+// <RateVisitButton visitId="123" /> // Uses auth store
+// <RateVisitButton token="abc-token" /> // Uses token store
+```
+
+**Example 4: Rate Visit Store Implementation**
+
+```typescript:luce-fe/src/store/visits/useRateVisit.ts
+import { createRequestFactory } from "@/lib/request-factory";
+import {
+  RateVisitDocument,
+  RateVisitWithTokenDocument,
+  type RateVisitMutation,
+  type RateVisitMutationVariables,
+  type RateVisitWithTokenMutation,
+  type RateVisitWithTokenMutationVariables,
+} from "@/__generated__/graphql";
+
+type RateVisitStoreConfig = {
+  useToken?: boolean;
+};
+
+export function createRateVisitStore(config: RateVisitStoreConfig = {}) {
+  // Conditional document selection: token or auth
+  const document = config.useToken
+    ? RateVisitWithTokenDocument
+    : RateVisitDocument;
+
+  return createRequestFactory<
+    RateVisitMutation | RateVisitWithTokenMutation,
+    RateVisitMutation | RateVisitWithTokenMutation,
+    RateVisitMutationVariables | RateVisitWithTokenMutationVariables
+  >({
+    method: "mutation",
+    graphqlDocument: document,
+    hasUpload: true,
+  });
+}
+
+// Export both variants for backward compatibility
+// Auth-based store (useToken: false)
+export const useRateVisitStore = createRateVisitStore({ useToken: false });
+// Token-based store (useToken: true)
+export const useRateVisitWithTokenStore = createRateVisitStore({ useToken: true });
 ```
 
 ## Migration Summary
@@ -396,7 +427,7 @@ function RateVisitButton({ visitId, token }: { visitId?: string; token?: string 
 **Migration Strategy**:
 
 1. Analyze differences between auth and token variants
-2. Choose consolidation approach (Option 2 recommended)
+2. Implement unified store with factory function
 3. Migrate one operation type at a time (start with visit detail)
 4. Test both auth and token flows thoroughly
 5. Update all usages across codebase
