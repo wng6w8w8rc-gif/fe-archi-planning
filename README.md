@@ -18,10 +18,6 @@
 - [Migration Priority](#migration-priority)
 - [Notes](#notes)
 - [Future Considerations](#future-considerations)
-- [Global Modal Refactoring](#global-modal-refactoring)
-- [Provider to Store Migration](#provider-to-store-migration)
-- [GraphQL Query Simplification](#graphql-query-simplification)
-- [Code Modularization Pattern](#code-modularization-pattern)
 
 ## Summary
 
