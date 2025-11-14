@@ -816,7 +816,6 @@ This section clarifies how v1 and v2 changes are tracked and managed to prevent 
   - Refactoring and architectural improvements
   - Performance optimizations
   - Bug fixes
-- **Code Ownership**: Owned by core refactor team (Gio, Fathul / Luce.sg)
 
 ### Shared Modules
 
@@ -829,7 +828,6 @@ Shared modules (`lib/`, `queries/`, `assets/`, `__generated__/`) must remain bac
 ### Code Ownership
 
 - **v1**: Maintained by fallback engineers for bug support
-- **v2**: Owned by core refactor team (Gio, Fathul / Luce.sg)
 
 ### Preventing "v1 Resurrection"
 
