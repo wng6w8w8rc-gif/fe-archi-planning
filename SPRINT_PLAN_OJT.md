@@ -44,19 +44,32 @@ The plan follows a point-based estimation system where:
 | ----------------------------------------------- | ------- | ------ |
 | Global Modal: Setup store/component (if needed) | 0.3     | ⬜     |
 | Global Modal: Migrate Visit Detail Modal        | 0.7     | ⬜     |
-| GraphQL: Setup `gqlhooks/visits/` folder        | 0.3     | ⬜     |
-| GraphQL: Create useVisitsByFiltersQuery hook    | 0.4     | ⬜     |
-| GraphQL: Migrate 1 visit list store             | 0.3     | ⬜     |
-| Code Modularization: Extract Visit List hooks   | 1.5     | ⬜     |
+| GraphQL: Setup `gqlhooks/visits/` folder        | 0.3     | ✅     |
+| GraphQL: Create useVisitsByFiltersQuery hook    | 0.4     | ✅     |
+| GraphQL: Migrate 1 visit list store             | 0.3     | ✅     |
+| Code Modularization: Extract Visit List hooks   | 1.5     | 🟡     |
 | **Buffer**                                      | **1.5** |        |
 
 **Deliverables:**
 
-- Global modal store/component created
-- Visit Detail modal migrated to global modal system
-- GraphQL hooks folder structure created
-- At least 1 visit list query migrated from request factory to useQuery hooks
-- Visit List component hooks extracted and modularized
+- ⬜ Global modal store/component created
+- ⬜ Visit Detail modal migrated to global modal system
+- ✅ GraphQL hooks folder structure created (`src/gqlhooks/visit/`)
+- ✅ Visit list queries migrated from request factory to useQuery hooks (`useGetVisitQuery`)
+- 🟡 Visit List component hooks extracted and modularized (`src/components/hooks/use-visit/`) - Partially complete
+
+**Completed Work:**
+
+- ✅ Created `src/gqlhooks/visit/useGetVisitQuery.tsx` - GraphQL hook using direct `useQuery`
+- ✅ Migrated multiple visit list stores (upcoming, history) to use `useGetVisitQuery`
+- ✅ Created `src/components/hooks/use-visit/` with extracted hooks:
+  - `use-visit.tsx` - Main visit hook with query management
+  - `use-visit-action.tsx` - Visit action handlers
+  - `use-visit-previous-booking.tsx` - Previous booking logic
+  - `use-visit-rebook-action.tsx` - Rebook action logic
+- ✅ Refactored `src/containers/visits/visit-list/index.tsx` to use extracted hooks
+- ✅ Refactored `src/containers/visits/upcoming/index.tsx` to use `useVisit` hook
+- ✅ Refactored `src/containers/visits/history/index.tsx` to use `useGetVisitQuery`
 
 ---
 
@@ -103,21 +116,24 @@ The plan follows a point-based estimation system where:
 
 ### Global Modal Implementation
 
-- ✅ At least 1 visit list modal (Visit Detail) uses global modal system
-- ✅ Modal pattern established for future migrations
-- ✅ Consistent modal behavior demonstrated
+- ⬜ At least 1 visit list modal (Visit Detail) uses global modal system
+- ⬜ Modal pattern established for future migrations
+- ⬜ Consistent modal behavior demonstrated
+- **Status:** Not started - still using `useVisitDetailStore` for modals
 
 ### GraphQL Query Migration
 
 - ✅ At least 1 visit list query uses direct useQuery hooks
-- ✅ GraphQL hooks pattern established
+- ✅ GraphQL hooks pattern established (`useGetVisitQuery`)
 - ✅ Proper error handling and loading states demonstrated
+- **Status:** Completed - Multiple visit list queries migrated (upcoming, history, unscheduled)
 
 ### Code Modularization
 
-- ✅ Visit List component uses extracted hooks
-- ✅ Code is more maintainable and testable
-- ✅ Clear separation of concerns demonstrated
+- 🟡 Visit List component uses extracted hooks
+- 🟡 Code is more maintainable and testable
+- 🟡 Clear separation of concerns demonstrated
+- **Status:** Partially completed - Hooks extracted to `src/components/hooks/use-visit/`, but some modularization work may still be pending
 
 ---
 
@@ -134,6 +150,33 @@ The plan follows a point-based estimation system where:
 
 ---
 
-**Last Updated:** [Date]
+**Last Updated:** 2024-12-19
 **Owned By:** OJT Session Participant
 **Mentor:** Luce.sg (Gio, Fathul)
+
+## Current Progress Summary
+
+**Completed (1.0 point):**
+
+- ✅ GraphQL Query Migration (1.0 point) - Fully completed
+
+**Partially Completed (1.5 points):**
+
+- 🟡 Code Modularization (1.5 points) - Partially completed
+
+**Remaining (1.0 point):**
+
+- ⬜ Global Modal Implementation (1.0 point) - Not started
+
+**Files Changed:**
+
+- Modified: `src/containers/visits/visit-list/index.tsx`
+- Modified: `src/containers/visits/upcoming/index.tsx`
+- Modified: `src/containers/visits/history/index.tsx`
+- Modified: `src/containers/previous-booking/index.tsx`
+- Modified: `src/app/(tabs)/visits/upcoming.tsx`
+- Created: `src/gqlhooks/visit/useGetVisitQuery.tsx`
+- Created: `src/components/hooks/use-visit/use-visit.tsx`
+- Created: `src/components/hooks/use-visit/use-visit-action.tsx`
+- Created: `src/components/hooks/use-visit/use-visit-previous-booking.tsx`
+- Created: `src/components/hooks/use-visit/use-visit-rebook-action.tsx`
